@@ -13,6 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent.parent.parent
 MCP_JSON = ROOT / ".mcp.json"
+PLUGIN_JSON = ROOT / ".claude-plugin" / "plugin.json"
 RUN_SERVER = ROOT / "bin" / "run-server"
 RUN_SERVER_CMD = ROOT / "bin" / "run-server.cmd"
 REQUIREMENTS = ROOT / "requirements.txt"
@@ -24,6 +25,10 @@ DEV_ONLY_PACKAGES = ["pytest", "ruff", "mypy"]
 
 def test_mcp_json_is_valid_json():
     json.loads(MCP_JSON.read_text(encoding="utf-8"))
+
+
+def test_plugin_json_is_valid_json():
+    json.loads(PLUGIN_JSON.read_text(encoding="utf-8"))
 
 
 def test_mcp_json_command_has_no_hardcoded_venv_subpath():

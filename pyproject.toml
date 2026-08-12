@@ -1,5 +1,5 @@
 [project]
-license = { file = "LICENSE" }
+license = { file = "LICENSE.md" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "servers/wikijs-mcp-server/tests"]

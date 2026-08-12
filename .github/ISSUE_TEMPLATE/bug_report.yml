@@ -1,0 +1,120 @@
+name: Bug Report
+description: Report something that isn't working correctly
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue. Fill out the sections below so this can be reproduced and fixed.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: What part of the plugin is affected?
+      options:
+        - MCP Server / wikijs_* Tool
+        - Skill (/wikijs-plugin:docs-wiki)
+        - Skill (/wikijs-plugin:setup)
+        - Page-History Tracking (SQLite)
+        - Windows Compatibility
+        - Configuration (.env / credentials)
+        - CLAUDE.md Instructions
+        - Documentation
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tool
+    attributes:
+      label: Which MCP tool? (if applicable)
+      description: If this involves a specific wikijs_* tool, which one?
+      options:
+        - wikijs_create_page
+        - wikijs_update_page
+        - wikijs_get_page
+        - wikijs_list_pages
+        - wikijs_search_pages
+        - wikijs_delete_page
+        - wikijs_move_page
+        - wikijs_get_page_history
+        - Other / not tool-specific
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Clear description of the issue
+      placeholder: wikijs_update_page overwrote the whole page instead of merging fields...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened?
+      placeholder: Only the fields passed to update_page should change; the rest of the page content should stay intact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can this be reproduced?
+      placeholder: |
+        1. Create a page with wikijs_create_page
+        2. Call wikijs_update_page with only a `tags` change
+        3. Observe the page content field was cleared
+    validations:
+      required: true
+
+  - type: input
+    id: wikijs-version
+    attributes:
+      label: Wiki.js version
+      description: Which Wiki.js version are you running (v2.x or v3.x)?
+      placeholder: 2.5.301
+    validations:
+      required: false
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      description: Version from `.claude-plugin/plugin.json` or `git rev-parse --short HEAD`
+      placeholder: 0.1.0-dev or abc1234
+    validations:
+      required: false
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Linux
+        - macOS
+        - Windows
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or error messages
+      description: Paste any error messages, stack traces, or relevant Claude conversation excerpts
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Any other context, screenshots, or files that might help
+    validations:
+      required: false

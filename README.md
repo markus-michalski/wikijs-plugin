@@ -60,7 +60,11 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
-MIT License — see [LICENSE](./LICENSE) for details
+[![License: PolyForm NC 1.0.0](https://img.shields.io/badge/license-PolyForm%20NC%201.0.0-red.svg?style=for-the-badge)](LICENSE.md)
+
+[PolyForm Noncommercial License 1.0.0](LICENSE.md) — source-available,
+personal and non-commercial use only. Not OSI Open Source.
+Commercial use requires explicit permission; contact the maintainer.
 
 ## Author
 
