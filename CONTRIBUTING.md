@@ -1,5 +1,17 @@
 # Contributing to wikijs-plugin
 
+wikijs-plugin is a **BDFL-maintained** project — Markus Michalski has final say on
+all merges. It's released under the [PolyForm Noncommercial License 1.0.0](LICENSE.md)
+(source-available, personal/non-commercial use only).
+
+## Contributor License Agreement
+
+Before Your first pull request can be merged, You must sign the
+[Contributor License Agreement](CLA.md). This happens automatically via
+[cla-assistant.io](https://cla-assistant.io/) — when You open a PR, a bot comments
+with a one-click signing link. You only need to sign once; the signature persists
+across all future PRs.
+
 ## Development Setup
 
 ```bash
@@ -93,4 +105,5 @@ test: add or modify tests
 1. Create a feature branch from `main`
 2. Make your changes, tests first (TDD)
 3. Ensure `pytest`, `ruff check`, and `mypy` all pass
-4. Open a PR with a clear description
+4. Sign the [CLA](CLA.md) when the cla-assistant bot prompts you (first PR only)
+5. Open a PR with a clear description — the Maintainer reviews and merges (BDFL model, no auto-merge)

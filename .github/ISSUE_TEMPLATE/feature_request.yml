@@ -1,0 +1,75 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement. This helps make the plugin better for everyone.
+
+        Remember: wikijs-plugin is released under the **PolyForm Noncommercial License 1.0.0**. Proposals must be compatible with non-commercial use cases.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: What type of enhancement is this?
+      options:
+        - New MCP Tool
+        - MCP Tool Enhancement
+        - Skill Enhancement (/wikijs-plugin:docs-wiki)
+        - Skill Enhancement (/wikijs-plugin:setup)
+        - Page-History Tracking
+        - Windows Compatibility
+        - Configuration / Setup
+        - Documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What problem does this solve? Why do you need it?
+      placeholder: |
+        I want to bulk-publish a whole docs tree in one call instead of one wikijs_create_page call per page.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would this work?
+      placeholder: |
+        Add a wikijs_bulk_create_pages tool that accepts a list of page specs and creates them in one transaction, reporting per-page success/failure.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Tried other approaches? Why don't they work?
+      placeholder: Looping wikijs_create_page manually works but is slow and has no partial-failure reporting.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Are you willing to help implement this?
+      options:
+        - label: I'd be willing to submit a PR for this feature (requires signing the CLA)
+        - label: I can help test if someone else implements it
+        - label: I can provide more detailed requirements if needed
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Examples, mockups, related issues, or anything else
+    validations:
+      required: false

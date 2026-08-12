@@ -5,7 +5,7 @@
   "author": {
     "name": "Markus Michalski"
   },
-  "license": "MIT",
+  "license": "SEE LICENSE.md",
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "keywords": [
@@ -15,6 +15,6 @@
     "graphql",
     "mcp",
     "docs",
-    "typescript"
+    "python"
   ]
 }
