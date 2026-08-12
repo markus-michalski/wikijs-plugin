@@ -176,6 +176,7 @@ def wikijs_update_page(
     sourceRepo: str = "",
     sourceRef: str = "",
     summary: str = "",
+    confirmContentShrink: bool = False,
 ) -> dict[str, Any]:
     """Update an existing page in Wiki.js.
 
@@ -184,11 +185,23 @@ def wikijs_update_page(
     metadata-only update, e.g. changing isPublished, works without resending
     the whole page). Same for tags.
 
+    WARNING: `content`, when provided, REPLACES the page's entire body —
+    there is no diff/merge, and no way to append or patch just one section.
+    To fix or extend a page, fetch it first with wikijs_get_page and send
+    back the full modified content, not a partial edit.
+
+    As a safety net against accidental wholesale overwrites (e.g. sending an
+    unexpanded variable or a fragment meant to be appended), an update is
+    refused when the new content is less than half the length of the page's
+    current content (for pages over ~200 chars) — the error names the exact
+    lengths involved. If the shrink is genuinely intended, retry the same
+    call with confirmContentShrink=True.
+
     Args:
         id: Page ID (use this OR path)
         path: Page path (use this OR id)
         locale: Page locale, default "en" (required with path)
-        content: New page content (optional)
+        content: New page content — REPLACES the entire page, optional
         title: New title, max 200 chars (optional)
         description: New description, max 500 chars (optional)
         isPublished: Publish/unpublish (optional)
@@ -198,6 +211,8 @@ def wikijs_update_page(
             wikijs_get_page_history.
         sourceRef: Optional source commit/tag (e.g. `git rev-parse HEAD`), DB-only.
         summary: Optional one-line summary of what changed, DB-only.
+        confirmContentShrink: Set True to confirm an intentional large content
+            reduction and bypass the accidental-overwrite guard above.
     """
     return pages.update_page(
         _get_client(),
@@ -212,6 +227,7 @@ def wikijs_update_page(
         source_repo=sourceRepo,
         source_ref=sourceRef,
         summary=summary,
+        confirm_content_shrink=confirmContentShrink,
     )
 
 

@@ -165,6 +165,92 @@ class TestUpdatePageTitleDescriptionAutoFetch:
         assert args["content"] == "# Path Content"
 
 
+class TestUpdatePageContentShrinkGuard:
+    """Safety net against wikijs_update_page's `content` silently wiping a
+    page — content has no diff/merge, it fully REPLACES the body. Regression
+    coverage for the incident that motivated this guard: a caller passed an
+    unexpanded placeholder as `content`, which wiped a real multi-KB page
+    with zero error or warning."""
+
+    _OLD_CONTENT = "# Existing\n\n" + ("Lorem ipsum dolor sit amet. " * 20)  # well over 200 chars
+
+    def _client_with_old_content(self) -> MagicMock:
+        return make_client(
+            get_page_by_id=MagicMock(
+                return_value={
+                    "id": 42,
+                    "path": "test/page",
+                    "title": "Test Page",
+                    "content": self._OLD_CONTENT,
+                    "locale": "en",
+                    "isPublished": False,
+                    "tags": [],
+                }
+            )
+        )
+
+    def test_blocks_drastic_shrink_without_confirmation(self):
+        client = self._client_with_old_content()
+        with pytest.raises(ValueError, match="Refusing update"):
+            pages.update_page(client, page_id=42, content="short")
+        client.update_page.assert_not_called()
+
+    def test_error_names_old_and_new_lengths_and_the_escape_hatch(self):
+        client = self._client_with_old_content()
+        with pytest.raises(ValueError) as exc_info:
+            pages.update_page(client, page_id=42, content="short")
+        message = str(exc_info.value)
+        assert str(len(self._OLD_CONTENT)) in message
+        # Must be the MCP-facing camelCase name (server.py's actual parameter),
+        # not the internal Python kwarg — this text is what an LLM caller sees
+        # and retries with.
+        assert "confirmContentShrink" in message
+        assert "confirm_content_shrink" not in message
+
+    def test_allows_drastic_shrink_with_confirmation(self):
+        client = self._client_with_old_content()
+        pages.update_page(client, page_id=42, content="short", confirm_content_shrink=True)
+        assert client.update_page.call_args.kwargs["content"] == "short"
+
+    def test_allows_similar_size_replacement_without_confirmation(self):
+        client = self._client_with_old_content()
+        new_content = self._OLD_CONTENT + " Plus a bit more text appended."
+        pages.update_page(client, page_id=42, content=new_content)
+        assert client.update_page.call_args.kwargs["content"] == new_content
+
+    def test_skips_guard_for_small_existing_pages(self):
+        """Default fixture content (~51 chars) is under the guard's minimum length."""
+        client = make_client()
+        pages.update_page(client, page_id=42, content="x")
+        assert client.update_page.call_args.kwargs["content"] == "x"
+
+    def test_does_not_apply_when_content_is_omitted(self):
+        """Metadata-only updates never touch content, so the guard must not fire."""
+        client = self._client_with_old_content()
+        pages.update_page(client, page_id=42, is_published=True)
+        assert client.update_page.call_args.kwargs["content"] == self._OLD_CONTENT
+
+    def test_blocks_drastic_shrink_when_page_resolved_by_path(self):
+        """current_page comes from get_page_by_path on this branch, not
+        get_page_by_id — a distinct code path that must be guarded too."""
+        client = make_client(
+            get_page_by_path=MagicMock(
+                return_value={
+                    "id": 42,
+                    "path": "test/page",
+                    "title": "Test Page",
+                    "content": self._OLD_CONTENT,
+                    "locale": "en",
+                    "isPublished": False,
+                    "tags": [],
+                }
+            )
+        )
+        with pytest.raises(ValueError, match="Refusing update"):
+            pages.update_page(client, path="test/page", locale="en", content="short")
+        client.update_page.assert_not_called()
+
+
 class TestUpdatePageErrors:
     def test_raises_when_page_not_found_by_id(self):
         client = make_client(get_page_by_id=MagicMock(return_value=None))
@@ -377,11 +463,14 @@ class TestUpdatePageSourceTracking:
         assert "page-history logging failed" in capsys.readouterr().err
 
     def test_logs_history_via_fallback_fetch_when_full_payload_given_by_id(self):
-        """page_id + explicit content/title/description means update_page's
-        own auto-fetch never runs (needs_current_page stays False), so
-        _log_update_history_safely must do its own client.get_page_by_id()
-        call to learn the path/locale for history — otherwise this call
-        shape would silently never log anything."""
+        """page_id + explicit content/title/description still triggers
+        update_page's auto-fetch (needed for the content-shrink guard), which
+        populates current_page/path for _log_update_history_safely. This test
+        guards the outcome (history gets logged) regardless of which fetch
+        path supplies the page — it would also catch a regression back to
+        the old "auto-fetch skipped when everything is given" behavior,
+        which relied on _log_update_history_safely's own separate
+        client.get_page_by_id() fallback to learn the path/locale."""
         client = make_client()
         pages.update_page(
             client, page_id=42, content="# New", title="New Title", description="New desc",

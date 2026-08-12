@@ -17,6 +17,13 @@ MAX_PAGE_LIMIT = 200
 MAX_TAG_LENGTH = 100
 MAX_TAGS_PER_PAGE = 50
 
+# update_page has no diff/merge — `content` replaces the whole page. Below
+# this old-content length the guard is skipped (small pages, low blast radius).
+CONTENT_SHRINK_GUARD_MIN_OLD_LEN = 200
+# New content shorter than this fraction of the old content's length is
+# treated as a likely accidental overwrite and blocked without confirmation.
+CONTENT_SHRINK_GUARD_RATIO = 0.5
+
 _LOCALE_RE = re.compile(r"^[a-z]{2}(-[A-Z]{2})?$")
 _PATH_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9\-_/]*[a-zA-Z0-9]$|^[a-zA-Z0-9]$")
 

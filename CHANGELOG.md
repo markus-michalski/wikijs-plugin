@@ -10,10 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing yet
+- `wikijs_update_page` refuses updates where `content` shrinks the page to under half its
+  current length (for pages 200+ chars), guarding against accidental wholesale overwrites
+  (content has no diff/merge, it fully replaces the page). Pass `confirmContentShrink: true`
+  to confirm an intentional shrink.
 
 ### Changed
-- Nothing yet
+- `wikijs_update_page` calls that previously succeeded while replacing `content` with something
+  under half the current page's length (200+ char pages) now fail with a `ValueError` unless
+  `confirmContentShrink: true` is passed — see Added above.
 
 ### Deprecated
 - Nothing yet
