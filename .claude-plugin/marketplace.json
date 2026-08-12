@@ -1,0 +1,14 @@
+{
+  "name": "wikijs-plugin",
+  "owner": {
+    "name": "markus-michalski"
+  },
+  "plugins": [
+    {
+      "name": "wikijs-plugin",
+      "description": "Wiki.js integration for Claude Code — MCP server + docs-wiki skill",
+      "version": "0.1.0-dev",
+      "source": "./"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+[project]
+license = { file = "LICENSE" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "servers/wikijs-mcp-server/tests"]
+pythonpath = ["servers/wikijs-mcp-server"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true

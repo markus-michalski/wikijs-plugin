@@ -1,0 +1,20 @@
+{
+  "name": "wikijs-plugin",
+  "version": "0.1.0-dev",
+  "description": "Wiki.js integration for Claude Code — MCP server for page CRUD/search plus a docs-wiki skill that orchestrates documentation agents to publish DE+EN docs",
+  "author": {
+    "name": "Markus Michalski"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "keywords": [
+    "wikijs",
+    "documentation",
+    "wiki",
+    "graphql",
+    "mcp",
+    "docs",
+    "typescript"
+  ]
+}

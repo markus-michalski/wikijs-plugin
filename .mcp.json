@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "wikijs-mcp": {
+      "type": "stdio",
+      "command": "${CLAUDE_PLUGIN_ROOT}/bin/run-server",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/servers/wikijs-mcp-server/run.py"],
+      "env": {
+        "CLAUDE_PLUGIN_ROOT": "${HOME}/.claude/plugins/marketplaces/wikijs-plugin"
+      }
+    }
+  }
+}
