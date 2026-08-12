@@ -34,10 +34,19 @@ Python (`mcp[cli]` + `httpx`), dedicated venv — same pattern as `mm-dev-toolki
 | `wikijs_search_pages` | Full-text search across wiki pages |
 | `wikijs_delete_page` | Permanently delete pages |
 | `wikijs_move_page` | Move pages to new paths |
+| `wikijs_get_page_history` | Read a page's logged change history (Phase 2, see below) |
 
 ### Skill (`skills/docs-wiki/`)
 
 `/wikijs-plugin:docs-wiki` — orchestrates documentation sub-agents (docs-architect, mermaid-expert, tutorial-engineer, api-documenter, reference-builder) to create/update Wiki.js pages in DE+EN.
+
+### Page-History Tracking
+
+`wikijs_create_page`/`wikijs_update_page` accept optional `sourceRepo`/`sourceRef`/`summary`
+parameters, logged to a local SQLite DB (`~/.wikijs-plugin/wikijs-plugin.db`) — **never** written
+into the visible page content or description, so the project's "no version numbers in body text"
+Wiki.js convention stays intact. `docs-wiki` passes the target project's `git rev-parse HEAD` as
+`sourceRef` automatically when available. Read the log back with `wikijs_get_page_history`.
 
 ## Requirements
 

@@ -1,8 +1,10 @@
 """Business logic for the wikijs_* MCP tools (port of the TS src/tools/*.ts handlers)."""
 from __future__ import annotations
 
+import sys
 from typing import Any
 
+from . import history
 from .client import WikiJsClient
 from .validation import (
     DEFAULT_PAGE_LIMIT,
@@ -19,6 +21,64 @@ from .validation import (
 _VALID_EDITORS = ("markdown", "code", "ckeditor")
 
 
+def _log_history_safely(
+    *, page_path: str, locale: str, source_repo: str, source_ref: str, summary: str
+) -> None:
+    """Best-effort page_history write.
+
+    A local DB problem must never fail an already-successful Wiki.js
+    create/update — the caller's page write has already committed by the
+    time this runs, so raising here would report a false failure and invite
+    a retry that duplicates/re-writes the page. See db.py's module docstring
+    for why the schema itself doesn't need eager setup either.
+    """
+    if not (source_repo or source_ref or summary):
+        return
+    try:
+        history.log_page_change(
+            page_path=page_path, locale=locale,
+            source_repo=source_repo, source_ref=source_ref, summary=summary,
+        )
+    except Exception as exc:  # intentionally broad — see docstring
+        print(f"[wikijs-plugin] page-history logging failed: {exc}", file=sys.stderr)
+
+
+def _log_update_history_safely(
+    client: WikiJsClient,
+    *,
+    resolved_id: int,
+    path: str | None,
+    locale: str,
+    current_page: dict[str, Any] | None,
+    source_repo: str,
+    source_ref: str,
+    summary: str,
+) -> None:
+    """Resolve page_path/locale for update_page's history entry, then log it.
+
+    Wrapped as one try/except so a failure in the path-resolution fallback
+    fetch (client.get_page_by_id) is just as non-fatal as a failure in the
+    DB write itself — see _log_history_safely's docstring.
+    """
+    if not (source_repo or source_ref or summary):
+        return
+    try:
+        history_path = path if path is not None else (current_page or {}).get("path")
+        history_locale = (current_page or {}).get("locale") or locale
+        if history_path is None:
+            fetched = client.get_page_by_id(resolved_id)
+            if fetched:
+                history_path = fetched.get("path")
+                history_locale = fetched.get("locale") or history_locale
+        if history_path:
+            history.log_page_change(
+                page_path=history_path, locale=history_locale,
+                source_repo=source_repo, source_ref=source_ref, summary=summary,
+            )
+    except Exception as exc:  # intentionally broad — see _log_history_safely
+        print(f"[wikijs-plugin] page-history logging failed: {exc}", file=sys.stderr)
+
+
 def create_page(
     client: WikiJsClient,
     *,
@@ -31,6 +91,9 @@ def create_page(
     is_published: bool = True,
     is_private: bool = False,
     tags: list[str] | None = None,
+    source_repo: str = "",
+    source_ref: str = "",
+    summary: str = "",
 ) -> dict[str, Any]:
     path = validate_path(path)
     title = validate_title(title)
@@ -52,6 +115,9 @@ def create_page(
         is_private=is_private,
         tags=tags,
     )
+
+    _log_history_safely(page_path=path, locale=locale, source_repo=source_repo, source_ref=source_ref, summary=summary)
+
     return {
         "message": f"Page created successfully at /{path}",
         "page": {"id": page["id"], "path": page["path"], "title": page["title"]},
@@ -161,6 +227,9 @@ def update_page(
     description: str | None = None,
     is_published: bool | None = None,
     tags: list[str] | None = None,
+    source_repo: str = "",
+    source_ref: str = "",
+    summary: str = "",
 ) -> dict[str, Any]:
     locale = validate_locale(locale)
     if page_id is not None:
@@ -216,7 +285,36 @@ def update_page(
         is_published=is_published,
         tags=tags_to_use,
     )
+
+    _log_update_history_safely(
+        client, resolved_id=resolved_id, path=path, locale=locale, current_page=current_page,
+        source_repo=source_repo, source_ref=source_ref, summary=summary,
+    )
+
     return {"message": f"Page {resolved_id} updated successfully", "result": result}
+
+
+def get_page_history(*, path: str, locale: str | None = None, limit: int = 20) -> dict[str, Any]:
+    """Read-only: past wikijs_create_page/update_page calls logged for a page.
+
+    Pure local DB read — takes no WikiJsClient, never touches the Wiki.js API.
+
+    Deliberately does NOT run `path` through validate_path()'s charset/dots
+    restrictions: those exist to keep bad data out of Wiki.js on writes, but
+    here `path` is only a parameterized SQLite lookup key (no injection
+    surface) for a page that may already exist with a path validate_path
+    would reject today (e.g. containing a dot, or non-ASCII characters) —
+    logged via an ID-based update, whose page_path comes verbatim from
+    Wiki.js's own API response, not through this validator. Only bounds-check
+    length so an absurd input still fails fast.
+    """
+    if not (1 <= len(path) <= 500):
+        raise ValueError("Path must be between 1 and 500 characters")
+    if locale is not None:
+        locale = validate_locale(locale)
+    if not (1 <= limit <= 200):
+        raise ValueError("limit must be between 1 and 200")
+    return {"path": path, "entries": history.get_page_history(path, locale=locale, limit=limit)}
 
 
 def delete_page(
