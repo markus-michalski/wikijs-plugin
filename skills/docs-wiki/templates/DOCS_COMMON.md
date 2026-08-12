@@ -199,6 +199,24 @@ Parameter- und Config-Referenz-Tabellen.
 
 ## Wiki.js MCP-Workflow
 
+### content ersetzt die GANZE Seite — kein Diff/Merge
+
+**KRITISCH:** `wikijs_update_page`s `content`-Parameter, wenn gesetzt, ERSETZT den
+kompletten Seiteninhalt. Es gibt kein Patchen oder Anhaengen einzelner Abschnitte.
+Vor jedem inhaltlichen Update also IMMER zuerst `wikijs_get_page` aufrufen, den
+vollstaendigen Content lokal bearbeiten und den GESAMTEN ueberarbeiteten Text als
+`content` zurueckschicken — nie nur den geaenderten Ausschnitt.
+
+Ein Update mit nur der geaenderten Zeile (z.B. ein einzelner korrigierter Link) loescht
+den Rest der Seite kommentarlos. Als Sicherheitsnetz lehnt der Server ein Update ab,
+wenn der neue Content unter 50% der Laenge des bisherigen Contents liegt (ab ca. 200
+Zeichen Bestandslaenge) — der Fehler nennt beide Zeichenzahlen. Ist die Kuerzung
+tatsaechlich beabsichtigt, `confirmContentShrink: true` mitgeben:
+
+```
+wikijs_update_page(path, locale, content, ..., confirmContentShrink: true, isPublished: true)
+```
+
 ### isPublished PFLICHT
 
 **KRITISCH:** Bei JEDEM `wikijs_create_page` und `wikijs_update_page` Aufruf
