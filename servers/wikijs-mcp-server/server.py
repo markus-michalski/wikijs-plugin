@@ -50,6 +50,9 @@ def wikijs_create_page(
     isPublished: bool = True,
     isPrivate: bool = False,
     tags: list[str] | None = None,
+    sourceRepo: str = "",
+    sourceRef: str = "",
+    summary: str = "",
 ) -> dict[str, Any]:
     """Create a new page in Wiki.js with markdown or HTML content.
 
@@ -66,6 +69,12 @@ def wikijs_create_page(
         isPublished: Publish immediately, default True
         isPrivate: Private page, default False
         tags: Tags for categorization
+        sourceRepo: Optional source repo name for page-history tracking (e.g.
+            "wikijs-plugin"). Logged to a local DB only, never written into
+            the page content/description — see wikijs_get_page_history.
+        sourceRef: Optional source commit/tag (e.g. `git rev-parse HEAD`).
+            Same DB-only logging as sourceRepo.
+        summary: Optional one-line summary of what changed, DB-only.
 
     Returns:
         Created page info with ID, path, and title.
@@ -81,6 +90,9 @@ def wikijs_create_page(
         is_published=isPublished,
         is_private=isPrivate,
         tags=tags,
+        source_repo=sourceRepo,
+        source_ref=sourceRef,
+        summary=summary,
     )
 
 
@@ -161,6 +173,9 @@ def wikijs_update_page(
     description: str | None = None,
     isPublished: bool | None = None,
     tags: list[str] | None = None,
+    sourceRepo: str = "",
+    sourceRef: str = "",
+    summary: str = "",
 ) -> dict[str, Any]:
     """Update an existing page in Wiki.js.
 
@@ -178,6 +193,11 @@ def wikijs_update_page(
         description: New description, max 500 chars (optional)
         isPublished: Publish/unpublish (optional)
         tags: Replace tags (optional)
+        sourceRepo: Optional source repo name for page-history tracking, DB-only
+            (never written into the page content/description) — see
+            wikijs_get_page_history.
+        sourceRef: Optional source commit/tag (e.g. `git rev-parse HEAD`), DB-only.
+        summary: Optional one-line summary of what changed, DB-only.
     """
     return pages.update_page(
         _get_client(),
@@ -189,6 +209,9 @@ def wikijs_update_page(
         description=description,
         is_published=isPublished,
         tags=tags,
+        source_repo=sourceRepo,
+        source_ref=sourceRef,
+        summary=summary,
     )
 
 
@@ -232,6 +255,10 @@ def wikijs_move_page(
     Identify the source page by ID or path+locale. This changes the page
     URL — update any links pointing to the old path.
 
+    Note: wikijs_get_page_history entries logged before a move stay filed
+    under the old path (page_history is keyed by path, not page ID) — they
+    won't show up when querying the new path.
+
     Args:
         destinationPath: New path for the page (e.g. "new-category/page-name")
         id: Page ID to move (use this OR path)
@@ -247,3 +274,31 @@ def wikijs_move_page(
         destination_path=destinationPath,
         destination_locale=destinationLocale,
     )
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
+    )
+)
+def wikijs_get_page_history(
+    path: str,
+    locale: str | None = None,
+    limit: int = 20,
+) -> dict[str, Any]:
+    """Get the change history logged for a Wiki.js page (Phase 2: source-ref tracking).
+
+    Local-only read from a SQLite DB (~/.wikijs-plugin/wikijs-plugin.db) —
+    never calls the Wiki.js API. Returns entries only for calls that were
+    made with sourceRepo/sourceRef/summary set on wikijs_create_page or
+    wikijs_update_page; plain edits without those parameters aren't logged.
+
+    Args:
+        path: Page path (same as passed to create_page/update_page)
+        locale: Filter by locale (optional; omit to see all locales for this path)
+        limit: Max entries to return, newest first, default 20, max 200
+
+    Returns:
+        {"path": ..., "entries": [{"changed_at", "locale", "source_repo", "source_ref", "summary"}, ...]}
+    """
+    return pages.get_page_history(path=path, locale=locale, limit=limit)

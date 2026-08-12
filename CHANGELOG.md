@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `mm-dev-toolkit`/`project-hub` venv + `bin/run-server` pattern — all 7
   `wikijs_*` tools preserve the original tool names, parameters, and behavior
   (including the update_page auto-fetch-on-metadata-only-update logic)
+- Page-history tracking (Phase 2): SQLite `page_history` table
+  (`~/.wikijs-plugin/wikijs-plugin.db`), optional `sourceRepo`/`sourceRef`/`summary`
+  parameters on `wikijs_create_page`/`wikijs_update_page` (DB-only, never written
+  into visible page content), new `wikijs_get_page_history` tool, `docs-wiki`
+  workflow updated to pass the target project's `git rev-parse HEAD` automatically
 
 ### Changed
 - Nothing yet

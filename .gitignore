@@ -30,3 +30,5 @@ Thumbs.db
 # Misc
 *.bak
 *.tmp
+.git-workflow*
+scratchpad/

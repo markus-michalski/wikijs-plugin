@@ -17,6 +17,7 @@ EXPECTED_TOOLS = {
     "wikijs_update_page",
     "wikijs_delete_page",
     "wikijs_move_page",
+    "wikijs_get_page_history",
 }
 
 

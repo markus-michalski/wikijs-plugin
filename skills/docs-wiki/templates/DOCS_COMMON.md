@@ -194,14 +194,47 @@ wikijs_create_page(path, locale, content, ..., isPublished: true)
 wikijs_update_page(path, locale, content, ..., isPublished: true)
 ```
 
+### Source-Ref-Tracking (wenn verfuegbar)
+
+Bevor Content geschrieben wird: im Zielprojekt-Verzeichnis (dem Repo, das dokumentiert wird)
+den aktuellen Git-Stand ermitteln:
+
+```bash
+git -C {zielprojekt-pfad} rev-parse HEAD
+# oder, falls das Projekt Tags nutzt:
+git -C {zielprojekt-pfad} describe --tags --always
+```
+
+Ist das Zielprojekt kein Git-Repo (oder der Befehl schlaegt fehl), Source-Ref-Tracking einfach
+auslassen — `sourceRepo`/`sourceRef`/`summary` sind optionale Parameter, kein Blocker fuer den
+Publish-Schritt.
+
+Ist ein Git-Stand ermittelbar, bei JEDEM `wikijs_create_page`/`wikijs_update_page`-Aufruf
+zusaetzlich mitgeben:
+
+```
+wikijs_create_page(path, locale, content, ..., isPublished: true,
+                    sourceRepo: "{projektname aus Schritt 2}", sourceRef: "{git-hash}",
+                    summary: "{ein Satz, was dokumentiert wurde}")
+```
+
+`sourceRepo`/`sourceRef`/`summary` landen NUR in einer lokalen Historie
+(`wikijs_get_page_history`) — nie im sichtbaren Seiteninhalt oder in der Description. Das erhaelt
+die "Keine Versionsnummern im Fliesstext"-Regel oben, macht aber trotzdem nachvollziehbar, auf
+welchem Source-Stand eine Seite zuletzt aktualisiert wurde — nuetzlich bei Projekten mit sehr
+haeufigen Aenderungen (z.B. taeglich mehrere Doku-Updates).
+
 ### Neue Doku erstellen
 
 ```
 1. wikijs_search_pages(query: "projektname")                        → Pruefen ob Seite existiert
-2. Content mit Agents generieren                                     → Markdown mit Enhanced Features
-3. wikijs_create_page(path, locale: "de", isPublished: true, ...)   → DE-Version erstellen
-4. wikijs_create_page(path, locale: "en", isPublished: true, ...)   → EN-Version erstellen
-5. wikijs_get_page(path, locale: "de")                               → Verifizieren
+2. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
+3. Content mit Agents generieren                                     → Markdown mit Enhanced Features
+4. wikijs_create_page(path, locale: "de", isPublished: true,
+                       sourceRepo, sourceRef, summary, ...)          → DE-Version erstellen
+5. wikijs_create_page(path, locale: "en", isPublished: true,
+                       sourceRepo, sourceRef, summary, ...)          → EN-Version erstellen
+6. wikijs_get_page(path, locale: "de")                               → Verifizieren
 ```
 
 ### Bestehende Doku updaten
@@ -209,9 +242,12 @@ wikijs_update_page(path, locale, content, ..., isPublished: true)
 ```
 1. wikijs_get_page(path, locale: "de")                               → Aktuelle Version laden
 2. wikijs_get_page(path, locale: "en")                               → EN-Version laden
-3. Content mit Agents ueberarbeiten                                  → Aenderungen einarbeiten
-4. wikijs_update_page(path, locale: "de", isPublished: true, ...)   → DE-Version updaten
-5. wikijs_update_page(path, locale: "en", isPublished: true, ...)   → EN-Version updaten
+3. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
+4. Content mit Agents ueberarbeiten                                  → Aenderungen einarbeiten
+5. wikijs_update_page(path, locale: "de", isPublished: true,
+                       sourceRepo, sourceRef, summary, ...)          → DE-Version updaten
+6. wikijs_update_page(path, locale: "en", isPublished: true,
+                       sourceRepo, sourceRef, summary, ...)          → EN-Version updaten
 ```
 
 ### Qualitaets-Upgrade
@@ -225,8 +261,11 @@ wikijs_update_page(path, locale, content, ..., isPublished: true)
    - Fehlende Tabs fuer alternative Wege?
    - Keine Praxisbeispiele?
 3. Agents gezielt einsetzen fuer Luecken
-4. wikijs_update_page(path, locale: "de", isPublished: true, ...)   → DE-Version updaten
-5. wikijs_update_page(path, locale: "en", isPublished: true, ...)   → EN-Version updaten
+4. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
+5. wikijs_update_page(path, locale: "de", isPublished: true,
+                       sourceRepo, sourceRef, summary, ...)          → DE-Version updaten
+6. wikijs_update_page(path, locale: "en", isPublished: true,
+                       sourceRepo, sourceRef, summary, ...)          → EN-Version updaten
 ```
 
 ## Qualitaets-Checkliste (vor Publish)

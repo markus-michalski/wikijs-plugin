@@ -6,10 +6,11 @@ Ticket 897857).
 """
 from __future__ import annotations
 
+import sqlite3
 from unittest.mock import MagicMock
 
 import pytest
-from tools import pages
+from tools import history, pages
 
 
 def make_client(**overrides) -> MagicMock:
@@ -267,3 +268,151 @@ class TestMovePage:
         client = make_client()
         with pytest.raises(ValueError):
             pages.move_page(client, destination_path="new/path")
+
+
+class TestCreatePageSourceTracking:
+    """Phase 2: optional source_repo/source_ref/summary logged to page_history, never in content."""
+
+    def test_logs_history_when_source_ref_given(self):
+        client = make_client()
+        client.create_page.return_value = {"id": 5, "path": "new/page", "title": "New"}
+        pages.create_page(
+            client, path="new/page", title="New", content="content", description="desc",
+            locale="de", source_repo="wikijs-plugin", source_ref="abc123", summary="Initial docs",
+        )
+        entries = history.get_page_history("new/page")
+        assert len(entries) == 1
+        assert entries[0]["source_ref"] == "abc123"
+        assert entries[0]["source_repo"] == "wikijs-plugin"
+        assert entries[0]["summary"] == "Initial docs"
+        assert entries[0]["locale"] == "de"
+
+    def test_no_history_row_when_no_source_fields_given(self):
+        client = make_client()
+        client.create_page.return_value = {"id": 5, "path": "new/page", "title": "New"}
+        pages.create_page(client, path="new/page", title="New", content="content", description="desc")
+        assert history.get_page_history("new/page") == []
+
+    def test_source_fields_never_reach_the_wikijs_client(self):
+        """The visible page content/description must never carry the source ref."""
+        client = make_client()
+        client.create_page.return_value = {"id": 5, "path": "new/page", "title": "New"}
+        pages.create_page(
+            client, path="new/page", title="New", content="content", description="desc",
+            source_ref="abc123",
+        )
+        call_kwargs = client.create_page.call_args.kwargs
+        assert "abc123" not in call_kwargs["content"]
+        assert "abc123" not in call_kwargs["description"]
+        assert "source_ref" not in call_kwargs
+
+    def test_history_logging_failure_does_not_fail_an_already_successful_write(self, monkeypatch, capsys):
+        """Regression test: the Wiki.js write already committed by the time
+        history logging runs — a DB error there must degrade to a stderr
+        message, never propagate and make a successful create look failed."""
+        def _raise(*a, **kw):
+            raise sqlite3.OperationalError("disk I/O error")
+
+        monkeypatch.setattr(history, "log_page_change", _raise)
+        client = make_client()
+        client.create_page.return_value = {"id": 5, "path": "new/page", "title": "New"}
+        result = pages.create_page(
+            client, path="new/page", title="New", content="content", description="desc",
+            source_ref="abc123",
+        )
+        assert result["page"]["id"] == 5
+        assert "page-history logging failed" in capsys.readouterr().err
+
+
+class TestUpdatePageSourceTracking:
+    def test_logs_history_using_explicit_path(self):
+        client = make_client()
+        pages.update_page(
+            client, path="test/page", locale="en", content="# Updated",
+            source_repo="wikijs-plugin", source_ref="def456",
+        )
+        entries = history.get_page_history("test/page")
+        assert len(entries) == 1
+        assert entries[0]["source_ref"] == "def456"
+
+    def test_logs_history_using_id_by_resolving_path(self):
+        """No path given directly — must resolve it (from the auto-fetched current page) before logging."""
+        client = make_client()
+        pages.update_page(client, page_id=42, is_published=True, source_ref="ghi789")
+        entries = history.get_page_history("test/page")  # make_client()'s fixture page path
+        assert len(entries) == 1
+        assert entries[0]["source_ref"] == "ghi789"
+
+    def test_no_history_row_when_no_source_fields_given(self):
+        client = make_client()
+        pages.update_page(client, page_id=42, is_published=True)
+        assert history.get_page_history("test/page") == []
+
+    def test_logs_actual_page_locale_not_request_default_when_resolving_by_id(self):
+        """Regression test: an ID-based update must log the page's real locale
+        (from the auto-fetched current page), not silently default to "en"
+        just because the caller's `locale` kwarg defaulted to "en"."""
+        client = make_client(
+            get_page_by_id=MagicMock(return_value={
+                "id": 42, "path": "test/page", "title": "Test Page",
+                "content": "c", "locale": "de", "isPublished": False, "tags": [],
+            })
+        )
+        pages.update_page(client, page_id=42, is_published=True, source_ref="abc123")
+        de_entries = history.get_page_history("test/page", locale="de")
+        en_entries = history.get_page_history("test/page", locale="en")
+        assert [e["source_ref"] for e in de_entries] == ["abc123"]
+        assert en_entries == []
+
+    def test_history_logging_failure_does_not_fail_an_already_successful_write(self, monkeypatch, capsys):
+        def _raise(*a, **kw):
+            raise sqlite3.OperationalError("disk I/O error")
+
+        monkeypatch.setattr(history, "log_page_change", _raise)
+        client = make_client()
+        result = pages.update_page(
+            client, path="test/page", locale="en", content="# Updated", source_ref="def456",
+        )
+        assert "updated successfully" in result["message"]
+        assert "page-history logging failed" in capsys.readouterr().err
+
+    def test_logs_history_via_fallback_fetch_when_full_payload_given_by_id(self):
+        """page_id + explicit content/title/description means update_page's
+        own auto-fetch never runs (needs_current_page stays False), so
+        _log_update_history_safely must do its own client.get_page_by_id()
+        call to learn the path/locale for history — otherwise this call
+        shape would silently never log anything."""
+        client = make_client()
+        pages.update_page(
+            client, page_id=42, content="# New", title="New Title", description="New desc",
+            source_ref="jkl012",
+        )
+        entries = history.get_page_history("test/page")
+        assert [e["source_ref"] for e in entries] == ["jkl012"]
+
+
+class TestGetPageHistoryTool:
+    def test_returns_logged_entries_for_path(self):
+        history.log_page_change(page_path="mcp/wikijs-plugin", locale="de", source_ref="abc123")
+        result = pages.get_page_history(path="mcp/wikijs-plugin")
+        assert result["path"] == "mcp/wikijs-plugin"
+        assert len(result["entries"]) == 1
+        assert result["entries"][0]["source_ref"] == "abc123"
+
+    def test_rejects_out_of_range_limit(self):
+        with pytest.raises(ValueError):
+            pages.get_page_history(path="mcp/wikijs-plugin", limit=0)
+
+    def test_empty_for_unknown_path(self):
+        result = pages.get_page_history(path="no/such/page")
+        assert result["entries"] == []
+
+    def test_accepts_paths_that_validate_path_would_reject(self):
+        """Regression test: a page created/discovered outside this tool can
+        have a path with a dot or non-ASCII char (validate_path's charset
+        restriction is for writes, not for looking up an existing log
+        entry). Logged verbatim via log_page_change to mirror how
+        _log_update_history_safely writes whatever Wiki.js returns."""
+        history.log_page_change(page_path="docs/v1.2", locale="en", source_ref="abc123")
+        result = pages.get_page_history(path="docs/v1.2")
+        assert [e["source_ref"] for e in result["entries"]] == ["abc123"]
