@@ -33,6 +33,22 @@ Nutze diese Wiki.js-spezifischen Markdown-Features aktiv:
 {.is-success}
 ```
 
+**KRITISCH - Callout Boxes NIE im Quelltext umbrechen:**
+
+Wiki.js fasst mehrzeilige `>`-Bloecke NICHT wie Standard-CommonMark zu Fliesstext zusammen —
+jeder einzelne Zeilenumbruch im Quelltext wird als hartes `<br>` gerendert. Ein Callout muss daher
+**immer eine einzige, unumbrochene Zeile** sein, unabhaengig von der Laenge:
+
+```markdown
+> Wichtiger Hinweis: Diese lange Warnung wurde bei ca. 90 Zeichen        <-- FALSCH
+> umgebrochen, um im Editor besser lesbar zu sein, und rendert in
+> Wiki.js mit sichtbaren Zeilenumbruechen mitten im Satz.
+{.is-warning}
+
+> Wichtiger Hinweis: Diese lange Warnung steht als eine einzige, unumbrochene Zeile im Quelltext und rendert in Wiki.js als normaler Fliesstext ohne sichtbare Umbrueche.   <-- KORREKT
+{.is-warning}
+```
+
 ### Content Tabs (fuer alternative Wege)
 
 ```markdown
@@ -287,6 +303,7 @@ Vor dem Erstellen/Updaten ALLE Punkte pruefen:
 - [ ] Badges aktuell (Version, CI-Status, Lizenz)
 - [ ] `isPublished: true` bei jedem MCP-Aufruf gesetzt
 - [ ] Mermaid: `graph` statt `flowchart`, Labels in Quotes, kein `::` oder `*`
+- [ ] Callout Boxes (`> ...`) stehen als eine einzige unumbrochene Zeile im Quelltext, nie manuell umgebrochen
 
 ## Wiki.js Seiten-Metadaten
 
