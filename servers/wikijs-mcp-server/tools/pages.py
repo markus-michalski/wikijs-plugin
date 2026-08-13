@@ -7,6 +7,8 @@ from typing import Any
 from . import history
 from .client import WikiJsClient
 from .validation import (
+    CONTENT_SHRINK_GUARD_MIN_OLD_LEN,
+    CONTENT_SHRINK_GUARD_RATIO,
     DEFAULT_PAGE_LIMIT,
     MAX_PAGE_LIMIT,
     validate_content,
@@ -216,6 +218,37 @@ def search_pages(client: WikiJsClient, *, query: str, locale: str | None = None)
     }
 
 
+def _guard_against_content_shrink(*, new_content: str, old_content: str, confirmed: bool) -> None:
+    """Refuse an update whose `content` looks like an accidental wholesale overwrite.
+
+    wikijs_update_page's `content` REPLACES the entire page — there is no
+    diff/merge. A caller that means to fix one section but accidentally
+    passes only that fragment (an unexpanded shell substitution, a truncated
+    variable, a partial edit meant to be appended rather than to replace
+    everything) silently wipes the rest of the page with no warning and no
+    undo from the API's perspective. Genuine, intentional shrinks (trimming a
+    bloated page) are rare — one explicit confirmContentShrink=true is a
+    small price for catching the accidental case by default.
+    """
+    if confirmed:
+        return
+    old_len = len(old_content)
+    if old_len < CONTENT_SHRINK_GUARD_MIN_OLD_LEN:
+        return
+    if len(new_content) >= old_len * CONTENT_SHRINK_GUARD_RATIO:
+        return
+    raise ValueError(
+        f"Refusing update: new content ({len(new_content)} chars) is less than "
+        f"{CONTENT_SHRINK_GUARD_RATIO:.0%} of the current page's content "
+        f"({old_len} chars). wikijs_update_page's content REPLACES the whole page — "
+        "there is no diff/merge. This looks like an accidental partial overwrite "
+        "rather than an intentional rewrite. If the shrink is intentional, retry "
+        # MCP-facing parameter name (camelCase), not the Python kwarg below —
+        # this text goes back to the calling LLM as the tool error result.
+        "with confirmContentShrink=true."
+    )
+
+
 def update_page(
     client: WikiJsClient,
     *,
@@ -230,6 +263,7 @@ def update_page(
     source_repo: str = "",
     source_ref: str = "",
     summary: str = "",
+    confirm_content_shrink: bool = False,
 ) -> dict[str, Any]:
     locale = validate_locale(locale)
     if page_id is not None:
@@ -260,16 +294,30 @@ def update_page(
         raise ValueError("Could not resolve page ID")
 
     # Wiki.js requires string values for title/description/content — auto-fetch
-    # whatever wasn't explicitly provided so a metadata-only update doesn't blank them.
-    needs_current_page = content is None or title is None or description is None
-    if needs_current_page and current_page is None:
+    # whatever wasn't explicitly provided so a metadata-only update doesn't
+    # blank them. Unconditional (not just "if something's missing") because
+    # _guard_against_content_shrink below always needs the real old content
+    # to compare against, even when content/title/description are all given.
+    if current_page is None:
         current_page = client.get_page_by_id(resolved_id)
         if not current_page:
             raise ValueError(f"Page not found with ID: {resolved_id}")
 
-    content_to_use = content if content is not None else (current_page or {}).get("content")
-    title_to_use = title if title is not None else (current_page or {}).get("title")
-    description_to_use = description if description is not None else (current_page or {}).get("description")
+    # current_page is guaranteed non-None past this point — both resolution
+    # branches above raise if the fetch comes back falsy.
+    if content is not None:
+        _guard_against_content_shrink(
+            new_content=content,
+            # "" (not missing) if the API response ever omits the field —
+            # treated as an empty page, so the guard fails open rather than
+            # blocking on data it can't actually compare.
+            old_content=current_page.get("content") or "",
+            confirmed=confirm_content_shrink,
+        )
+
+    content_to_use = content if content is not None else current_page.get("content")
+    title_to_use = title if title is not None else current_page.get("title")
+    description_to_use = description if description is not None else current_page.get("description")
 
     tags_to_use = tags
     if tags_to_use is None:
