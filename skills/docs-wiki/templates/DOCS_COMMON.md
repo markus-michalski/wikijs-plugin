@@ -65,7 +65,7 @@ composer require mmd/plugin-name
 git clone https://github.com/markus-michalski/repo-name.git
 ```
 
-### Mermaid-Diagramme (mindestens 1 pro Seite!)
+### Mermaid-Diagramme (Hub und `technical` je mindestens 1)
 
 **KRITISCH - Wiki.js Mermaid 8.8.2 Kompatibilitaet:**
 
@@ -121,26 +121,131 @@ Wiki.js-Seiten beschreiben immer nur den **aktuellen Stand** des Plugins/Moduls,
 - KEINE "(ab vX.Y.Z)"-Zusaetze an Ueberschriften oder Feature-Beschreibungen — Versionsnummern
   veralten sofort wieder und muessen bei jedem Release nachgepflegt werden (macht in der Praxis
   niemand)
-- Versionsgeschichte gehoert ins CHANGELOG.md des Repos, nicht ins Wiki
+- Versionsgeschichte gehoert ins CHANGELOG.md des Repos, nicht ins Wiki. Es gibt im Wiki auch
+  **keinen Changelog-Abschnitt** und keinen Link darauf (sonst wird er doppelt gepflegt, und bei
+  privaten Repos laeuft der Link ins Leere)
 - Stattdessen: direkt unter dem Sprachlink/den Badges am Seitenanfang ein Hinweis-Callout, dass
   sich die Doku immer auf die aktuellste Version bezieht
 - Diese Regel gilt auch dann, wenn der User selbst eine Versionsnummer nennt und erwartet, dass sie
-  dokumentiert wird — die Versionsnummer nicht in Ueberschrift/Fliesstext uebernehmen, sondern auf
-  das CHANGELOG verweisen (das Hinweis-Callout deckt das ab)
+  dokumentiert wird — die Versionsnummer nicht in Ueberschrift/Fliesstext uebernehmen (das
+  Hinweis-Callout deckt das ab)
 
 ```markdown
-> Diese Dokumentation bezieht sich immer auf die aktuellste veroeffentlichte Version. Fuer
-> aeltere Versionen siehe das [CHANGELOG](https://github.com/markus-michalski/{repo}/blob/main/CHANGELOG.md).
+> Diese Dokumentation bezieht sich immer auf die aktuellste veroeffentlichte Version.
 {.is-info}
 ```
 
 EN-Pendant:
 
 ```markdown
-> This documentation always describes the latest published version. For older versions, see
-> the [CHANGELOG](https://github.com/markus-michalski/{repo}/blob/main/CHANGELOG.md).
+> This documentation always describes the latest published version.
 {.is-info}
 ```
+
+## Hub + Unterseiten - PFLICHT
+
+Jedes Projekt bekommt **keine** Einzelseite mit allen Inhalten, sondern einen **Hub** mit
+Unterseiten. Der Grund: Eine Seite mit Installation, Konfiguration, API, Fehlerbehebung und
+Technik ist nicht mehr ueberschaubar. Die Regel gilt fuer alle Projekttypen und auch bei
+Update/Qualitaets-Upgrade (siehe "Bestehende Einzelseite umbauen").
+
+### Aufbau
+
+```
+{typ}/{projekt}                    Hub: kurze Startseite
+{typ}/{projekt}/installation       Unterseite
+{typ}/{projekt}/configuration      Unterseite
+...
+```
+
+- Gleicher Pfad fuer DE und EN (nur `locale` unterscheidet sich), daher **englische Slugs**
+- Der Hub ist eine kurze Startseite (ca. eine Bildschirmhoehe plus Tabellen), Detailtexte stehen
+  auf den Unterseiten
+- Fuer jede Unterseite gilt: nur anlegen, wenn es dazu Inhalt gibt. Leere Seiten oder Seiten mit
+  einem Absatz sind falsch, der Inhalt gehoert dann in eine verwandte Seite
+
+### Hub-Inhalt (in dieser Reihenfolge)
+
+1. Sprachlink, H1, Badges, "aktuelle Version"-Callout
+2. Ueberblick (was, fuer wen, Kern-Vorteil als Callout)
+3. Ein Mermaid-Uebersichtsdiagramm
+4. **Dokumentation**: Tabelle `Seite | Inhalt` mit Links auf alle Unterseiten (ersetzt das
+   frueher manuelle Inhaltsverzeichnis)
+5. Features (Tabelle), Anforderungen (Tabelle)
+6. Lizenz, Support (kein Changelog-Abschnitt)
+
+Alles andere steht auf Unterseiten.
+
+### Standard-Unterseiten
+
+| Slug | Inhalt | Wann |
+|------|--------|------|
+| `installation` | Installation (Tabs), Update, Deinstallation, Cronjobs/Scheduled Tasks | immer |
+| `configuration` | Einstellungen, Admin-Oberflaeche, Praxis-Beispiele | immer, wenn es etwas zu konfigurieren gibt |
+| `troubleshooting` | Fehlerbehebung (Symptoms → Check → Solution), bekannte Einschraenkungen, FAQ | immer |
+| `technical` | Architektur-Diagramm, Struktur, Entities/Tabellen, Interna | immer |
+| typ-spezifisch | siehe Tabelle "Seite → Sektionen" im jeweiligen Typ-Template (z.B. `shop-api`, `storefront`, `extending`, `tools`, `options`) | bei Inhalt |
+
+Bei Projekten mit sehr vielen gleichartigen Eintraegen (z.B. Skills, Check-Typen) ist eine
+Referenzseite oder eine weitere Ebene (`/skills`, `/checks/{name}`) erlaubt. Bestehende
+inhaltlich benannte Unterseiten (z.B. `plugins/storyforge/writing-modes`) behalten ihren Slug.
+
+### Konventionen fuer jede Unterseite
+
+- Kopf: Sprachlink, Leerzeile, Link zurueck zum Hub, Leerzeile, H1
+
+  ```markdown
+  [English Version](https://faq.markus-michalski.net/en/{path})
+
+  [Zurueck zur Uebersicht](/de/{hub-pfad})
+
+  # {Projekt}: {Thema}
+  ```
+
+  EN: `[Deutsche Version](https://faq.markus-michalski.net/de/{path})` und
+  `[Back to overview](/en/{hub-pfad})`
+- Titel: `{Projekt}: {Thema}` (z.B. "ALTCHA: Konfiguration")
+- Eigene Description (max 250 Zeichen), die zum Thema der Unterseite passt, nicht die Hub-Description
+- Tags wie beim Hub
+- Links zwischen Seiten immer als absoluter Wiki-Pfad mit Locale (`/de/...`, `/en/...`), nie als
+  `#anchor` auf eine Seite, die es nicht mehr gibt
+- Das Mermaid-Pflichtdiagramm liegt auf dem Hub (Uebersicht) und auf `technical` (Detail). Auf den
+  uebrigen Unterseiten nur, wenn es den Inhalt klarer macht
+- Callouts, Tabs, Troubleshooting-Pattern und alle anderen Regeln dieser Datei gelten
+  unveraendert pro Seite
+
+### Kategorie-Seite (Karten-Uebersicht)
+
+Jede Plattform hat eine Kategorie-Seite (`sylius`, `shopware6`, `oxid7`, `osticket`, `mcp`,
+`plugins`, `bash-scripts`) mit einer Karte pro Projekt. Die Karte verlinkt **direkt auf die
+Unterseiten**, nicht nur auf den Hub: erster Link der Hub, danach die wichtigsten Unterseiten
+(Installation, Konfiguration, Fehlerbehebung, typ-spezifische). Bei neuem Projekt wird die Karte
+angelegt, bei Umbau oder neuer Unterseite wird sie nachgezogen. Format der Kategorie-Seite
+(HTML-Karten oder Markdown-Tabelle) von der bestehenden Seite uebernehmen, nicht neu erfinden.
+
+### Bestehende Einzelseite umbauen (Update und Qualitaets-Upgrade)
+
+Trifft ein Update oder Upgrade auf eine Einzelseite (alles auf einer Seite), wird sie in diesem
+Zug zu Hub + Unterseiten umgebaut. Danach nicht zurueck zur Einzelseite.
+
+1. DE und EN laden (`wikijs_get_page`) und die Abschnitte inventarisieren
+2. Jedem Abschnitt eine Zielseite zuweisen (Standard-Unterseiten, Tabelle im Typ-Template).
+   **Kein Abschnitt darf entfallen.** Vor dem Publish pruefen, dass jeder Abschnitt der alten Seite
+   auf genau einer neuen Seite wieder auftaucht
+3. Unterseiten zuerst anlegen (`wikijs_create_page`, DE + EN), danach den Hub per
+   `wikijs_update_page` auf die Kurzfassung reduzieren. Der Hub wird dabei weniger als halb so
+   lang, also `confirmContentShrink: true` setzen (siehe "content ersetzt die GANZE Seite")
+4. Bestehende Unterseiten (z.B. bei StoryForge) auf Standard-Slugs pruefen: Weicht ein Slug nur
+   in der Schreibweise von einem Standard-Slug ab, mit `wikijs_move_page` umbenennen, inhaltlich
+   benannte Slugs behalten. Den Hub um die Dokumentations-Tabelle ergaenzen
+5. Eingehende Links reparieren: `wikijs_search_pages` nach Verweisen auf alte `#anchor` und
+   Pfade, in anderen Seiten und in der Kategorie-Seite
+6. Kategorie-Karte auf die Unterseiten umstellen
+7. Mit `wikijs_get_page` pruefen, dass Hub und alle Unterseiten in beiden Sprachen erreichbar
+   sind und alle Links aufloesen
+
+Reihenfolge beim **Neu-Anlegen**: Unterseiten zuerst, Hub zuletzt (damit die Links des Hubs nicht
+ins Leere laufen), dann Kategorie-Karte.
 
 ## Agent-Orchestrierung
 
@@ -158,7 +263,7 @@ Codebase analysieren und Hauptdokumentation schreiben.
 
 ### 2. mermaid-expert (IMMER)
 
-Mindestens 1 Diagramm pro Seite erstellen.
+Mindestens 1 Uebersichtsdiagramm fuer den Hub und 1 Detaildiagramm fuer `technical` erstellen.
 
 **WICHTIG:** Mermaid 8.8.2 Kompatibilitaetsregeln beachten (siehe oben):
 - `graph` statt `flowchart`, Labels in Quotes, kein `::` oder `*` in Labels
@@ -260,27 +365,38 @@ haeufigen Aenderungen (z.B. taeglich mehrere Doku-Updates).
 
 ### Neue Doku erstellen
 
+Immer als Hub + Unterseiten (siehe "Hub + Unterseiten - PFLICHT"). `path` und `locale` gelten
+fuer jede einzelne Seite, die Schritte 4-5 werden also pro Unterseite wiederholt.
+
 ```
 1. wikijs_search_pages(query: "projektname")                        → Pruefen ob Seite existiert
 2. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
-3. Content mit Agents generieren                                     → Markdown mit Enhanced Features
+3. Seiten-Plan erstellen und Content mit Agents generieren           → Hub + Unterseiten, Enhanced Markdown
 4. wikijs_create_page(path, locale: "de", isPublished: true,
-                       sourceRepo, sourceRef, summary, ...)          → DE-Version erstellen
+                       sourceRepo, sourceRef, summary, ...)          → je Unterseite DE, dann Hub DE
 5. wikijs_create_page(path, locale: "en", isPublished: true,
-                       sourceRepo, sourceRef, summary, ...)          → EN-Version erstellen
-6. wikijs_get_page(path, locale: "de")                               → Verifizieren
+                       sourceRepo, sourceRef, summary, ...)          → je Unterseite EN, dann Hub EN
+6. Kategorie-Seite: Karte mit Links auf die Unterseiten anlegen      → wikijs_get_page + wikijs_update_page
+7. wikijs_get_page(path, locale: "de")                               → Hub und Unterseiten verifizieren
 ```
 
+Unterseiten zuerst, Hub zuletzt, damit die Links des Hubs nicht ins Leere laufen.
+
 ### Bestehende Doku updaten
+
+Ist die Doku bereits Hub + Unterseiten, wird nur die betroffene Seite pro Sprache aktualisiert
+(und der Hub, falls sich Features/Anforderungen/Dokumentations-Tabelle aendern). Ist sie noch
+eine Einzelseite, zuerst "Bestehende Einzelseite umbauen" ausfuehren.
 
 ```
 1. wikijs_get_page(path, locale: "de")                               → Aktuelle Version laden
 2. wikijs_get_page(path, locale: "en")                               → EN-Version laden
-3. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
-4. Content mit Agents ueberarbeiten                                  → Aenderungen einarbeiten
-5. wikijs_update_page(path, locale: "de", isPublished: true,
+3. Einzelseite? → zu Hub + Unterseiten umbauen (siehe oben)          → Umbau vor inhaltlichen Aenderungen
+4. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
+5. Content mit Agents ueberarbeiten                                  → Aenderungen einarbeiten
+6. wikijs_update_page(path, locale: "de", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → DE-Version updaten
-6. wikijs_update_page(path, locale: "en", isPublished: true,
+7. wikijs_update_page(path, locale: "en", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → EN-Version updaten
 ```
 
@@ -289,6 +405,7 @@ haeufigen Aenderungen (z.B. taeglich mehrere Doku-Updates).
 ```
 1. wikijs_get_page(path, locale: "de")                               → Aktuelle Version laden
 2. Luecken identifizieren:
+   - Einzelseite statt Hub + Unterseiten? → zuerst umbauen (siehe oben)
    - Fehlende Mermaid-Diagramme?
    - Keine Callout Boxes?
    - Flache Troubleshooting-Sektion?
@@ -306,7 +423,11 @@ haeufigen Aenderungen (z.B. taeglich mehrere Doku-Updates).
 
 Vor dem Erstellen/Updaten ALLE Punkte pruefen:
 
-- [ ] Mindestens 1 Mermaid-Diagramm vorhanden
+- [ ] Hub + Unterseiten statt Einzelseite; Hub ist eine kurze Startseite mit Dokumentations-Tabelle
+- [ ] Jede Unterseite hat Sprachlink, Link zurueck zum Hub, eigene Description und `{Projekt}: {Thema}`-Titel
+- [ ] Beim Umbau: jeder Abschnitt der alten Seite steht auf genau einer neuen Seite (nichts verloren)
+- [ ] Kategorie-Karte verlinkt auf die Unterseiten
+- [ ] Hub und `technical` haben je mindestens 1 Mermaid-Diagramm
 - [ ] Callout Boxes fuer Warnungen/Tipps (`.is-warning`, `.is-info`, `.is-danger`, `.is-success`)
 - [ ] Keine "(ab vX.Y.Z)"-Versionszusaetze im Fliesstext — stattdessen "aktuelle Version"-Hinweis am Seitenanfang
 - [ ] Tabs fuer alternative Installationswege / Konfigurationsmethoden

@@ -19,6 +19,23 @@
 
 ## Seiten-Struktur (Sektionen in dieser Reihenfolge)
 
+Die Sektionen unten sind nicht eine Seite, sondern werden nach der Regel "Hub + Unterseiten"
+(siehe DOCS_COMMON.md) auf Hub und Unterseiten verteilt. Die Nummern bleiben die Reihenfolge
+innerhalb ihrer Seite. Eine Unterseite wird nur angelegt, wenn es dazu Inhalt gibt.
+
+| Seite | Pfad | Sektionen |
+|-------|------|-----------|
+| Hub | `mcp/{server}` | 1, 3, 4, 5, 6, 14, 15 (kurz, mit Dokumentations-Tabelle) |
+| Installation | `.../installation` | 7 |
+| Konfiguration | `.../configuration` | 8 |
+| Tools | `.../tools` | 9 (PFLICHT-Seite) |
+| Verwendung | `.../usage` | 10 |
+| Fehlerbehebung | `.../troubleshooting` | 11, 13 |
+| Technik | `.../technical` | 12 |
+
+Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentations-Tabelle auf dem Hub ersetzt.
+
+
 ### 1. Titel + Badges + Sprachlink
 
 ### 2. Inhaltsverzeichnis (manuell)
@@ -135,7 +152,7 @@ npm install && npm run build
 
 ### 14. Lizenz (MIT)
 
-### 15. Support + Changelog
+### 15. Support
 
 ## Mermaid-Diagramm-Vorlage
 

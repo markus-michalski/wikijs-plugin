@@ -28,6 +28,22 @@
 
 ## Seiten-Struktur (Sektionen in dieser Reihenfolge)
 
+Die Sektionen unten sind nicht eine Seite, sondern werden nach der Regel "Hub + Unterseiten"
+(siehe DOCS_COMMON.md) auf Hub und Unterseiten verteilt. Die Nummern bleiben die Reihenfolge
+innerhalb ihrer Seite. Eine Unterseite wird nur angelegt, wenn es dazu Inhalt gibt.
+
+| Seite | Pfad | Sektionen |
+|-------|------|-----------|
+| Hub | `oxid7/{modul}` | 1, 3, 4, 5, 15, 16 (kurz, mit Dokumentations-Tabelle) |
+| Installation | `.../installation` | 6, 7 |
+| Konfiguration | `.../configuration` | 8, 11 |
+| Console Commands | `.../commands` | 9 |
+| Fehlerbehebung | `.../troubleshooting` | 12, 14 |
+| Technik | `.../technical` | 10, 13 |
+
+Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentations-Tabelle auf dem Hub ersetzt.
+
+
 ### 1. Titel + Badges + Sprachlink
 
 ### 2. Inhaltsverzeichnis (manuell)
@@ -109,7 +125,7 @@ vendor/bin/oe-console oe:cache:clear
 
 ### 15. Lizenz
 
-### 16. Support + Changelog
+### 16. Support
 
 ## Mermaid-Diagramm-Vorlage
 
