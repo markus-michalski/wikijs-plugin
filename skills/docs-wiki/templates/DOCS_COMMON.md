@@ -332,6 +332,7 @@ Vor dem Erstellen/Updaten ALLE Punkte pruefen:
 | osTicket | `osticket`, `plugin` | `api`, `markdown`, `subticket`, etc. |
 | Shopware6 | `shopware6`, `plugin` | `consent`, `tracking`, `payment`, etc. |
 | OXID | `oxid`, `oxid7`, `modul` | `sitemap`, `analytics`, `consent`, etc. |
+| Sylius | `sylius`, `plugin` | `spam-protection`, `shop-api`, `checkout`, etc. |
 | MCP | `mcp`, `claude-code` | `osticket`, `wikijs`, `api`, etc. |
 | Bash | `bash`, `script` | `automation`, `deployment`, etc. |
 | Agent | `claude`, `agent` | `skill`, `workflow`, etc. |

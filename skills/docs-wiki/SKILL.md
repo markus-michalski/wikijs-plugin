@@ -4,7 +4,7 @@ description: |
   Create or update Wiki.js documentation using documentation agents with enhanced Markdown.
   Use when: (1) User types /docs-wiki, (2) "Wiki-Doku erstellen/aktualisieren",
   (3) "Dokumentation für Wiki.js", (4) "Qualitäts-Upgrade der Doku"
-  Supports: osTicket, Shopware6, OXID, MCP, Bash/Shell, Claude Agents.
+  Supports: osTicket, Shopware6, OXID, Sylius, MCP, Bash/Shell, Claude Agents.
   Integrates Wiki.js MCP for direct publishing in DE + EN.
 model: claude-sonnet-5
 user-invocable: true
@@ -26,7 +26,7 @@ Use `{base_directory}/templates/` to build full paths.
 Check context for clues (current directory, user message, recent conversation).
 
 If not detectable, ask with AskUserQuestion:
-- Options: osTicket, Shopware6, OXID, MCP, Bash/Shell, Claude Agent
+- Options: osTicket, Shopware6, OXID, Sylius, MCP, Bash/Shell, Claude Agent
 
 If the type IS already clear from context (e.g. the user just named the platform in the same or
 a preceding message), proceed directly to Step 2 — do not ask again as a defensive
@@ -59,6 +59,7 @@ Read TWO files from `{base_directory}/templates/`:
 | osTicket | `osTicket/OSTICKET_DOCS.md` |
 | Shopware6 | `Shopware6/SHOPWARE6_DOCS.md` |
 | OXID | `OXID/OXID_DOCS.md` |
+| Sylius | `Sylius/SYLIUS_DOCS.md` |
 | MCP | `MCP/MCP_DOCS.md` |
 | Bash/Shell | `Bash/BASH_DOCS.md` |
 | Claude Agent | `Agent/AGENT_DOCS.md` |
