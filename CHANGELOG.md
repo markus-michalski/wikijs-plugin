@@ -27,6 +27,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Nothing yet
 
+## [1.2.0] - 2026-10-05
+
+### Added
+- add Sylius plugin template (#14)
+
+### Changed
+- Bump the pip-all group across 1 directory with 2 updates (#12)
+- Bump the pip-all group with 2 updates (#10)
+- Bump the pip-all group with 2 updates (#9)
+- Bump the pip-all group with 2 updates (#8)
+- Bump the pip-all group with 3 updates (#6)
+- Bump the actions-all group with 2 updates (#5)
+
 ## [1.1.0] - 2026-08-13
 
 ### Changed
@@ -47,3 +60,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [1.0.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.0.0
 [1.1.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.1.0
+[Unreleased]: https://github.com/markus-michalski/wikijs-plugin/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.0

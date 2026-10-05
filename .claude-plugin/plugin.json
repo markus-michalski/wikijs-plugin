@@ -1,6 +1,6 @@
 {
   "name": "wikijs-plugin",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Wiki.js integration for Claude Code — MCP server for page CRUD/search plus a docs-wiki skill that orchestrates documentation agents to publish DE+EN docs",
   "author": {
     "name": "Markus Michalski"
