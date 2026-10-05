@@ -28,6 +28,22 @@
 
 ## Seiten-Struktur (Sektionen in dieser Reihenfolge)
 
+Die Sektionen unten sind nicht eine Seite, sondern werden nach der Regel "Hub + Unterseiten"
+(siehe DOCS_COMMON.md) auf Hub und Unterseiten verteilt. Die Nummern bleiben die Reihenfolge
+innerhalb ihrer Seite. Eine Unterseite wird nur angelegt, wenn es dazu Inhalt gibt.
+
+| Seite | Pfad | Sektionen |
+|-------|------|-----------|
+| Hub | `shopware6/{projekt}` | 1, 3, 4, 5, 16, 17 (kurz, mit Dokumentations-Tabelle) |
+| Installation | `.../installation` | 6, 7, 12 |
+| Konfiguration | `.../configuration` | 8, 9, 11 |
+| Storefront | `.../storefront` | 10 |
+| Fehlerbehebung | `.../troubleshooting` | 13, 15 |
+| Technik | `.../technical` | 14 |
+
+Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentations-Tabelle auf dem Hub ersetzt.
+
+
 ### 1. Titel + Badges + Sprachlink
 
 ### 2. Inhaltsverzeichnis (manuell)
@@ -124,8 +140,6 @@ bin/console cache:clear
 - E-Mail: support@markus-michalski.net
 - Oder GitHub Issues (bei Open Source)
 
-### 18. Changelog
-- Nur Link auf CHANGELOG.md
 
 ## Mermaid-Diagramm-Vorlage
 

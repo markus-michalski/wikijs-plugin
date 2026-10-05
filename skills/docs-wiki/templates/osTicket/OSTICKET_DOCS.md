@@ -19,6 +19,22 @@
 
 ## Seiten-Struktur (Sektionen in dieser Reihenfolge)
 
+Die Sektionen unten sind nicht eine Seite, sondern werden nach der Regel "Hub + Unterseiten"
+(siehe DOCS_COMMON.md) auf Hub und Unterseiten verteilt. Die Nummern bleiben die Reihenfolge
+innerhalb ihrer Seite. Eine Unterseite wird nur angelegt, wenn es dazu Inhalt gibt.
+
+| Seite | Pfad | Sektionen |
+|-------|------|-----------|
+| Hub | `osticket/{plugin}` | 1, 3, 4, 5, 6, 14, 15 (kurz, mit Dokumentations-Tabelle) |
+| Installation | `.../installation` | 7 |
+| Konfiguration | `.../configuration` | 8 |
+| Verwendung | `.../usage` | 9 |
+| Fehlerbehebung | `.../troubleshooting` | 11, 13 |
+| Technik | `.../technical` | 10, 12 (Signal Hooks hier, bei viel Inhalt eigene Seite `.../signal-hooks`) |
+
+Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentations-Tabelle auf dem Hub ersetzt.
+
+
 ### 1. Titel + Badges + Sprachlink
 
 ### 2. Inhaltsverzeichnis (manuell)
@@ -107,8 +123,6 @@ Danach: Plugin aktivieren (Admin Panel → Verwalten → Plugins)
 - GitHub Issue Tracker Link
 - "Beim Melden angeben:" Liste
 
-### 16. Changelog
-- Nur Link auf CHANGELOG.md im Repo
 
 ## Mermaid-Diagramm-Vorlage
 

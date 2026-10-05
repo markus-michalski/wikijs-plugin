@@ -18,6 +18,23 @@
 
 ## Seiten-Struktur (Sektionen in dieser Reihenfolge)
 
+Die Sektionen unten sind nicht eine Seite, sondern werden nach der Regel "Hub + Unterseiten"
+(siehe DOCS_COMMON.md) auf Hub und Unterseiten verteilt. Die Nummern bleiben die Reihenfolge
+innerhalb ihrer Seite. Eine Unterseite wird nur angelegt, wenn es dazu Inhalt gibt.
+
+| Seite | Pfad | Sektionen |
+|-------|------|-----------|
+| Hub | `bash-scripts/{tool}` | 1, 3, 4, 5, 14 (kurz, mit Dokumentations-Tabelle) |
+| Installation | `.../installation` | 6 |
+| Verwendung | `.../usage` | 7, 9 |
+| Optionen | `.../options` | 8 (PFLICHT bei CLI-Scripts) |
+| Konfiguration | `.../configuration` | 10 |
+| Fehlerbehebung | `.../troubleshooting` | 11, 13 |
+| Technik | `.../technical` | 12 |
+
+Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentations-Tabelle auf dem Hub ersetzt.
+
+
 ### 1. Titel + Badges + Sprachlink
 
 ### 2. Inhaltsverzeichnis (manuell)
@@ -119,7 +136,7 @@ git clone https://github.com/markus-michalski/{repo}.git
 
 ### 13. FAQ
 
-### 14. Lizenz + Changelog
+### 14. Lizenz
 
 ## Mermaid-Diagramm-Vorlage
 

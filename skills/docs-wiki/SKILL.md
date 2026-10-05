@@ -68,9 +68,13 @@ Read TWO files from `{base_directory}/templates/`:
 
 Based on loaded templates:
 
-1. **Neue Doku:** Codebase analysieren → Content generieren → DE + EN erstellen → In Wiki.js publizieren
-2. **Update:** Bestehende Seite laden → Änderungen einarbeiten → DE + EN updaten
-3. **Qualitäts-Upgrade:** Bestehende Seite laden → Lücken identifizieren → Agents gezielt einsetzen → Updaten
+**Alle Modi arbeiten mit Hub + Unterseiten** (Regel "Hub + Unterseiten - PFLICHT" in `DOCS_COMMON.md`):
+der Projektpfad ist eine kurze Startseite, Installation/Konfiguration/Fehlerbehebung/Technik und
+typ-spezifische Themen liegen auf Unterseiten, die Kategorie-Karte verlinkt direkt darauf.
+
+1. **Neue Doku:** Codebase analysieren → Seiten-Plan (Hub + Unterseiten) → Content generieren → Unterseiten, dann Hub in DE + EN publizieren → Kategorie-Karte anlegen
+2. **Update:** Bestehende Seite laden → ist sie eine Einzelseite, zuerst zu Hub + Unterseiten umbauen → Änderungen einarbeiten → DE + EN updaten
+3. **Qualitäts-Upgrade:** Bestehende Seite laden → Einzelseite umbauen, Lücken identifizieren → Agents gezielt einsetzen → Updaten
 
 ## Quick Start
 

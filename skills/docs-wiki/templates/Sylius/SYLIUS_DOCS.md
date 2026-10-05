@@ -53,11 +53,27 @@ ohne Link erscheinen, wenn sie fuer Leser relevant ist:
 ```
 
 Bei privaten Repos entfallen auch alle anderen Links nach GitHub: Abschnitt 21 "Support" nennt nur
-die Support-Mail (keine GitHub Issues), Abschnitt 22 "Changelog" gibt den Inhalt direkt im Wiki
-wieder statt auf `CHANGELOG.md` zu verlinken, und das "aktuelle Version"-Callout aus DOCS_COMMON
-wird ohne CHANGELOG-Link formuliert.
+die Support-Mail (keine GitHub Issues).
 
 ## Seiten-Struktur (Sektionen in dieser Reihenfolge)
+
+Die Sektionen unten sind nicht eine Seite, sondern werden nach der Regel "Hub + Unterseiten"
+(siehe DOCS_COMMON.md) auf Hub und Unterseiten verteilt. Die Nummern bleiben die Reihenfolge
+innerhalb ihrer Seite. Eine Unterseite wird nur angelegt, wenn es dazu Inhalt gibt.
+
+| Seite | Pfad | Sektionen |
+|-------|------|-----------|
+| Hub | `sylius/{projekt}` | 1, 3, 4, 5, 20, 21 (kurz, mit Dokumentations-Tabelle) |
+| Installation | `.../installation` | 6, 7, 14, Migrationen/Deinstallation |
+| Konfiguration | `.../configuration` | 8, 9, 13 |
+| Storefront | `.../storefront` | 10 |
+| Shop API | `.../shop-api` | 11 (PFLICHT-Seite, Dual-Mode) |
+| Erweiterbarkeit | `.../extending` | 12, 17 |
+| Fehlerbehebung | `.../troubleshooting` | 15, 18, 19 |
+| Technik | `.../technical` | 16 |
+
+Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentations-Tabelle auf dem Hub ersetzt.
+
 
 ### 1. Titel + Badges + Sprachlink
 
@@ -217,10 +233,6 @@ Nach dem `composer require` (beide Tabs, IMMER in dieser Reihenfolge):
 ### 21. Support
 - E-Mail: support@markus-michalski.net
 - GitHub Issues nur bei oeffentlichem Repo
-
-### 22. Changelog
-- Oeffentliches Repo: nur Link auf CHANGELOG.md
-- Privates Repo: Link waere ein 404, Inhalt stattdessen direkt im Wiki wiedergeben
 
 ## Migrationen (eigener Hinweisblock, kein Sections-Punkt)
 
