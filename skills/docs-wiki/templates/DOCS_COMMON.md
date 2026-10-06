@@ -166,7 +166,7 @@ Update/Qualitaets-Upgrade (siehe "Bestehende Einzelseite umbauen").
 
 ### Hub-Inhalt (in dieser Reihenfolge)
 
-1. Sprachlink, H1, Badges, "aktuelle Version"-Callout
+1. Sprachlink, Link zur Kategorie-Seite, H1, Badges, "aktuelle Version"-Callout
 2. Ueberblick (was, fuer wen, Kern-Vorteil als Callout)
 3. Ein Mermaid-Uebersichtsdiagramm
 4. **Dokumentation**: Tabelle `Seite | Inhalt` mit Links auf alle Unterseiten (ersetzt das
@@ -213,6 +213,26 @@ inhaltlich benannte Unterseiten (z.B. `plugins/storyforge/writing-modes`) behalt
   uebrigen Unterseiten nur, wenn es den Inhalt klarer macht
 - Callouts, Tabs, Troubleshooting-Pattern und alle anderen Regeln dieser Datei gelten
   unveraendert pro Seite
+
+### Link zur Elternseite - PFLICHT
+
+Jede Seite verlinkt auf ihre Elternseite, damit Leser nie in einer Sackgasse landen und zwischen
+Kategorien wechseln koennen:
+
+| Seite | Link fuehrt zu | Beispiel |
+|-------|----------------|----------|
+| Unterseite | Hub | `[Zurueck zur Uebersicht](/de/oxid7/sitemap)` |
+| Hub | Kategorie-Seite | `[Alle OXID 7 Plugins](/de/oxid7)` |
+| Kategorie-Seite | Home | `[← Zur Hauptuebersicht](/de/home)` |
+
+- Der Link steht direkt unter dem Sprachlink (Markdown) bzw. im Hero-Bereich unter dem Untertitel
+  (HTML-Kategorie-Seiten, helle Linkfarbe wegen dunklem Hintergrund)
+- Absoluter Wiki-Pfad mit Locale, wie bei allen Links (`/de/...`, `/en/...`)
+- EN-Pendants: `Back to overview`, `All OXID 7 Plugins`, `Back to main overview`
+- Fehlt die direkte Elternseite (z.B. keine Kategorie-Seite), gilt die naechsthoehere vorhandene
+  Seite, sonst Home
+- Beim Anlegen einer neuen Seite wird der Link gleich mit gesetzt, bei Update oder Upgrade einer
+  Bestandsseite ohne Link wird er nachgezogen
 
 ### Kategorie-Seite (Karten-Uebersicht)
 
@@ -427,6 +447,7 @@ Vor dem Erstellen/Updaten ALLE Punkte pruefen:
 - [ ] Jede Unterseite hat Sprachlink, Link zurueck zum Hub, eigene Description und `{Projekt}: {Thema}`-Titel
 - [ ] Beim Umbau: jeder Abschnitt der alten Seite steht auf genau einer neuen Seite (nichts verloren)
 - [ ] Kategorie-Karte verlinkt auf die Unterseiten
+- [ ] Jede Seite verlinkt auf ihre Elternseite (Unterseite → Hub, Hub → Kategorie, Kategorie → Home)
 - [ ] Hub und `technical` haben je mindestens 1 Mermaid-Diagramm
 - [ ] Callout Boxes fuer Warnungen/Tipps (`.is-warning`, `.is-info`, `.is-danger`, `.is-success`)
 - [ ] Keine "(ab vX.Y.Z)"-Versionszusaetze im Fliesstext — stattdessen "aktuelle Version"-Hinweis am Seitenanfang
