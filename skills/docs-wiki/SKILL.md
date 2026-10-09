@@ -76,7 +76,7 @@ Based on loaded templates:
 der Projektpfad ist eine kurze Startseite, Installation/Konfiguration/Fehlerbehebung/Technik und
 typ-spezifische Themen liegen auf Unterseiten, die Kategorie-Karte verlinkt direkt darauf.
 
-1. **Neue Doku:** Codebase analysieren → Seiten-Plan (Hub + Unterseiten) → Content für alle Seiten generieren (DE + EN)
+1. **Neue Doku:** Codebase analysieren und dabei ein Inventar aus dem Code bauen (Explore-Subagent, Kategorien laut source-check 1a inkl. Projekttyp-Spezifika, siehe `skills/source-check/SKILL.md`) → Seiten-Plan (Hub + Unterseiten) auf Basis des Inventars: Jeder Inventarpunkt wird einer Seite zugeordnet oder als intern markiert → Content für alle Seiten generieren (DE + EN). Das Inventar geht als Daten in den Prompt jedes Doku-Agents, sonst sehen die Agents es nie.
 2. **Update:** Bestehende Seite laden → ist sie eine Einzelseite, zuerst zu Hub + Unterseiten umbauen → Änderungen einarbeiten (DE + EN)
 3. **Qualitäts-Upgrade:** Bestehende Seite laden → Einzelseite umbauen, Lücken identifizieren → Agents gezielt einsetzen (DE + EN)
 
@@ -90,11 +90,17 @@ als Behauptung und prüft Pfade, Klassen, Config-Keys, Befehle und Beschreibunge
 Quellcode des Projekts. Fehler, die in DE und EN gleich stehen, findet nur dieser Check. Reine
 Link- oder Metadaten-Updates (z. B. die Kategorie-Karte) sind ausgenommen.
 
-- **Neue Doku:** ein Explore-Subagent liest das Projekt einmal vollständig, der Hauptkontext bleibt klein.
+Zusätzlich hält der Check ein Inventar aus dem Code gegen den Seiten-Satz: Was im Code existiert und
+nirgends steht, wird als undokumentiert gemeldet. Undokumentierte Punkte ändern weder das Verdikt
+noch das Markieren, der User entscheidet nur, ob ergänzt wird. Das gilt in jedem Modus.
+
+- **Neue Doku:** ein Explore-Subagent liest das Projekt einmal vollständig, der Hauptkontext bleibt klein. Der Check baut das Inventar unabhängig neu, statt das aus Schritt 5 wiederzuverwenden (hat Schritt 5 etwas übersehen, würde sonst auch der Check es übersehen).
 - **Update / Qualitäts-Upgrade:** hat die Seite einen gültigen Verified Ref (`wikijs_get_verified_refs`,
   `page_updated_at` passt zum Live-`updatedAt`), wird der Code-Diff seit diesem Ref gelesen **und**
-  jeder Abschnitt geprüft, dessen Text sich ändert. Ohne gültigen Verified Ref läuft der Claim-Check
-  über die ganze Seite und wird zur Baseline.
+  jeder Abschnitt geprüft, dessen Text sich ändert, dazu das Inventar-Delta der geänderten Dateien.
+  Steht ein im Diff entfernter oder umbenannter Punkt noch auf einer Seite außerhalb des Laufs, gehört
+  diese Seite zum Update. Ohne gültigen Verified Ref laufen Claim-Check und Inventar-Check (1a)
+  über den ganzen Seiten-Satz und werden zur Baseline.
 - **FAIL** → Content mit dem Wert aus dem Code korrigieren, erneut prüfen. Nicht publizieren.
 - **WARN** → Fundstellen gesammelt dem User zeigen, Entscheidung einholen. Ein vom User
   freigegebenes WARN zählt für das Markieren als bestanden.

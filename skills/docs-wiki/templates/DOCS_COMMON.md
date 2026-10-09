@@ -407,7 +407,7 @@ EN-Seiten, danach das Markieren je Seite und Sprache). Source-Check (Schritt 4) 
 ```
 1. wikijs_search_pages(query: "projektname")                        → Pruefen ob Seite existiert
 2. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
-3. Seiten-Plan erstellen und Content mit Agents generieren           → Hub + Unterseiten, Enhanced Markdown
+3. Inventar aus dem Code bauen (Explore, source-check 1a), dann Seiten-Plan erstellen und Content mit Agents generieren → Hub + Unterseiten, Enhanced Markdown
 4. /wikijs-plugin:source-check über alle DE- und EN-Seiten           → FAIL: mit Codewerten korrigieren, erneut prüfen; WARN: User fragen
 5. /wikijs-plugin:translation-check über alle DE- und EN-Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
 6. wikijs_create_page(path, locale: "de", isPublished: true,
@@ -435,7 +435,7 @@ eine Einzelseite, zuerst "Bestehende Einzelseite umbauen" ausfuehren.
 3. Einzelseite? → zu Hub + Unterseiten umbauen (siehe oben)          → Umbau vor inhaltlichen Aenderungen
 4. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
 5. Content mit Agents ueberarbeiten                                  → Aenderungen einarbeiten
-6. /wikijs-plugin:source-check über alle geänderten Seiten           → Gültiger Verified Ref: Code-Diff plus jeden geänderten Abschnitt prüfen; sonst ganze Seite (wird Baseline). FAIL: mit Codewerten korrigieren
+6. /wikijs-plugin:source-check über alle geänderten Seiten plus Seiten, auf denen entfernte Inventarpunkte stehen → Gültiger Verified Ref: Code-Diff plus jeden geänderten Abschnitt prüfen; sonst Claim-Check und Inventar-Check (1a) über den ganzen Seiten-Satz (wird Baseline). FAIL: mit Codewerten korrigieren
 7. /wikijs-plugin:translation-check über alle geänderten Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
 8. wikijs_update_page(path, locale: "de", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → DE-Version updaten
@@ -459,7 +459,7 @@ eine Einzelseite, zuerst "Bestehende Einzelseite umbauen" ausfuehren.
    - Keine Praxisbeispiele?
 3. Agents gezielt einsetzen fuer Luecken
 4. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
-5. /wikijs-plugin:source-check über alle geänderten Seiten           → Gültiger Verified Ref: Code-Diff plus jeden geänderten Abschnitt prüfen; sonst ganze Seite (wird Baseline). FAIL: mit Codewerten korrigieren
+5. /wikijs-plugin:source-check über alle geänderten Seiten plus Seiten, auf denen entfernte Inventarpunkte stehen → Gültiger Verified Ref: Code-Diff plus jeden geänderten Abschnitt prüfen; sonst Claim-Check und Inventar-Check (1a) über den ganzen Seiten-Satz (wird Baseline). FAIL: mit Codewerten korrigieren
 6. /wikijs-plugin:translation-check über alle geänderten Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
 7. wikijs_update_page(path, locale: "de", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → DE-Version updaten

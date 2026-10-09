@@ -165,6 +165,77 @@ def test_claim_check_reports_missing_entries_in_lists_and_trees():
     assert "Verzeichnisbäume" in section
 
 
+def _inventory_section() -> str:
+    return _section(_read(SKILL_MD), "### 1a. Inventar-Check", "### 2. Verified Ref")
+
+
+def test_inventory_check_sits_between_claim_check_and_verified_ref():
+    skill = _read(SKILL_MD)
+    claim = skill.index("### 1. Claim-Check")
+    inventory = skill.index("### 1a. Inventar-Check")
+    verified = skill.index("### 2. Verified Ref")
+    assert claim < inventory < verified
+
+
+def test_inventory_is_built_from_the_code_and_not_the_readme():
+    """The claim check goes page -> code and cannot see a feature the page never mentions.
+    The inventory goes code -> page and finds exactly those."""
+    section = _inventory_section()
+    assert "aus dem Code" in section
+    assert "nicht aus der README" in section
+    assert "Explore" in section
+
+
+def test_inventory_covers_the_user_facing_surface():
+    section = _inventory_section()
+    for item in ("Console-Commands", "Routen", "Config-Keys", "Umgebungsvariablen", "Events", "Twig", "Entities"):
+        assert item in section, f"inventory must cover {item}"
+
+
+def test_internals_are_excluded_and_intern_is_a_user_decision():
+    section = _inventory_section()
+    assert "undokumentiert" in section
+    assert "Interna" in section, "internal classes are not expected on a page"
+    assert "bewusst intern" in section
+
+
+def test_inventory_states_that_it_is_heuristic():
+    assert "heuristisch" in _inventory_section()
+
+
+def test_new_pages_build_the_inventory_before_the_content_is_generated():
+    section = _section(_read(SKILL_MD), "### 5. Neue Seiten", "### 6. Verdikt und Ausgabe")
+    assert "Inventar" in section
+    assert "vor der Content-Generierung" in section
+
+
+def test_diff_mode_and_baseline_use_the_inventory_too():
+    skill = _read(SKILL_MD)
+    diff = _section(skill, "### 3. Update aus dem Diff", "### 4. Baseline-Lauf")
+    baseline = _section(skill, "### 4. Baseline-Lauf", "### 5. Neue Seiten")
+    assert "Inventar" in diff, "new or removed user-facing items in the diff must show up on the page"
+    assert "Inventar" in baseline
+
+
+def test_verdict_output_lists_undocumented_items():
+    section = _section(_read(SKILL_MD), "### 6. Verdikt und Ausgabe", "## Quick Start")
+    assert "Undokumentiert" in section
+
+
+def test_docs_wiki_new_doc_mode_starts_from_the_code_inventory():
+    modes = _section(_read(DOCS_WIKI_SKILL), "### 5. Execute Documentation Workflow", "### 5a.")
+    new_doc = modes[modes.index("**Neue Doku:**") :].splitlines()[0]
+    assert "Inventar" in new_doc
+
+
+def test_new_doc_recipe_builds_the_inventory_before_generating_and_checking():
+    recipe = _section(_read(DOCS_COMMON), "### Neue Doku erstellen", "### Bestehende Doku updaten")
+    assert "Inventar" in recipe
+    inventory = recipe.index("Inventar")
+    assert inventory < recipe.index("Seiten-Plan"), "the plan is made from the inventory"
+    assert inventory < recipe.index("/wikijs-plugin:source-check"), "the inventory exists before the check runs"
+
+
 def test_baseline_pages_through_the_page_list_and_reports_totals():
     section = _section(_read(SKILL_MD), "### 4. Baseline-Lauf", "### 5. Neue Seiten")
     assert "has_more" in section

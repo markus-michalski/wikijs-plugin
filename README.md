@@ -49,8 +49,16 @@ config keys, commands, descriptions) against the project's source code. The READ
 claim, the code wins. `docs-wiki` runs it before `translation-check` and before every publish,
 because an error that reads correctly and stands identically in DE and EN is invisible to the
 translation check. `/wikijs-plugin:source-check baseline` checks all existing pages project by
-project and reports findings without changing any page. Verified state is stored in the local
-history DB and is per machine.
+project and reports findings without changing any page. Besides wrong claims it also reports what is
+missing: an inventory built from the code (what the project itself defines for users: commands,
+routes, config keys, environment variables, extension points, Twig hooks, entities, plus categories
+per project type) is held against the whole page set, and anything that exists in the code but is
+mentioned nowhere is listed as undocumented. That list is a note and never blocks a publish or the
+verified marker. The full inventory runs for new docs, for pages without a verified ref and in the
+baseline run; for pages with a verified ref an update checks only the delta of the changed files. The
+inventory is heuristic, an empty result does not prove the page is complete, and
+a "bewusst intern" decision is not stored, so the same items show up again on the next full run.
+Verified state is stored in the local history DB and is per machine.
 
 ### Skill (`skills/translation-check/`)
 
