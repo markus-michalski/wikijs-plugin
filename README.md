@@ -35,10 +35,22 @@ Python (`mcp[cli]` + `httpx`), dedicated venv — same pattern as `mm-dev-toolki
 | `wikijs_delete_page` | Permanently delete pages |
 | `wikijs_move_page` | Move pages to new paths |
 | `wikijs_get_page_history` | Read a page's logged change history (Phase 2, see below) |
+| `wikijs_mark_verified` | Record that a page was checked against the source code at a commit (local DB only) |
+| `wikijs_get_verified_refs` | Read the newest verified source ref per page and locale (local DB only) |
 
 ### Skill (`skills/docs-wiki/`)
 
 `/wikijs-plugin:docs-wiki` — orchestrates documentation sub-agents (docs-architect, mermaid-expert, tutorial-engineer, api-documenter, reference-builder) to create/update Wiki.js pages in DE+EN.
+
+### Skill (`skills/source-check/`)
+
+`/wikijs-plugin:source-check` — checks the factual claims of a page (paths, class and method names,
+config keys, commands, descriptions) against the project's source code. The README counts as a
+claim, the code wins. `docs-wiki` runs it before `translation-check` and before every publish,
+because an error that reads correctly and stands identically in DE and EN is invisible to the
+translation check. `/wikijs-plugin:source-check baseline` checks all existing pages project by
+project and reports findings without changing any page. Verified state is stored in the local
+history DB and is per machine.
 
 ### Skill (`skills/translation-check/`)
 
@@ -55,6 +67,13 @@ parameters, logged to a local SQLite DB (`~/.wikijs-plugin/wikijs-plugin.db`) �
 into the visible page content or description, so the project's "no version numbers in body text"
 Wiki.js convention stays intact. `docs-wiki` passes the target project's `git rev-parse HEAD` as
 `sourceRef` automatically when available. Read the log back with `wikijs_get_page_history`.
+
+A logged `sourceRef` only means "written at". A page counts as verified once `source-check` passed
+for it and `wikijs_mark_verified` recorded the ref together with the page's `updatedAt`; only that
+verified ref serves as the baseline for diff-based updates, and only while the page still has that
+`updatedAt` (an edit in the Wiki.js editor or outside `docs-wiki` makes it unverified again). Existing
+refs from before this feature stay as information and are not verified. After updating the plugin, run
+`/wikijs-plugin:source-check baseline` once, otherwise each page gets a full check on its first update.
 
 ## Requirements
 

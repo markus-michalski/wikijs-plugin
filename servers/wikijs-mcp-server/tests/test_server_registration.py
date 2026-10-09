@@ -12,6 +12,8 @@ EXPECTED_TOOLS = {
     "wikijs_delete_page",
     "wikijs_move_page",
     "wikijs_get_page_history",
+    "wikijs_mark_verified",
+    "wikijs_get_verified_refs",
 }
 
 
@@ -118,3 +120,107 @@ def test_get_page_history_tool_requires_no_wikijs_client(monkeypatch):
     result = asyncio.run(_call())
     assert not result.is_error
     assert result.structured_content["entries"][0]["source_ref"] == "abc123"
+
+
+def test_verification_tools_are_local_db_only(monkeypatch):
+    """mark_verified and get_verified_refs only touch the local DB. The baseline
+    run must work for passing pages without rewriting them on Wiki.js."""
+    import server
+    from mcp.client import Client
+
+    def _fail(*a, **kw):
+        raise AssertionError("verification tools must not construct a WikiJsClient")
+
+    monkeypatch.setattr(server, "_get_client", _fail)
+
+    async def _call():
+        async with Client(server.mcp) as client:
+            marked = await client.call_tool(
+                "wikijs_mark_verified",
+                {
+                    "path": "mcp/wikijs-plugin", "locale": "de", "sourceRepo": "wikijs-plugin",
+                    "sourceRef": "abc123", "pageUpdatedAt": "2026-10-01T10:00:00.000Z",
+                },
+            )
+            listed = await client.call_tool("wikijs_get_verified_refs", {"path": "mcp/wikijs-plugin"})
+            return marked, listed
+
+    marked, listed = asyncio.run(_call())
+    assert not marked.is_error
+    assert not listed.is_error
+    entry = listed.structured_content["entries"][0]
+    assert entry["source_ref"] == "abc123"
+    assert entry["page_updated_at"] == "2026-10-01T10:00:00.000Z"
+
+
+def _mark_call(**overrides):
+    import server
+    from mcp.client import Client
+
+    args = {
+        "path": "p", "locale": "de", "sourceRepo": "r", "sourceRef": "abc",
+        "pageUpdatedAt": "2026-10-01T10:00:00.000Z",
+    }
+    args.update(overrides)
+
+    async def _call():
+        async with Client(server.mcp) as client:
+            return await client.call_tool("wikijs_mark_verified", args)
+
+    return asyncio.run(_call())
+
+
+def test_mark_verified_rejects_empty_ref():
+    assert _mark_call(sourceRef="").is_error
+
+
+def test_mark_verified_rejects_missing_page_state():
+    assert _mark_call(pageUpdatedAt="").is_error
+
+
+def test_mark_verified_rejects_invalid_locale():
+    assert _mark_call(locale="not a locale!").is_error
+
+
+def test_mark_verified_normalizes_leading_slash_to_the_page_path():
+    """The URL form '/mcp/foo' and the API form 'mcp/foo' must hit the same row,
+    otherwise the baseline keeps reporting a verified page as unchecked."""
+    import server
+    from mcp.client import Client
+
+    assert not _mark_call(path="/mcp/foo").is_error
+
+    async def _call():
+        async with Client(server.mcp) as client:
+            return await client.call_tool("wikijs_get_verified_refs", {"path": "mcp/foo"})
+
+    entries = asyncio.run(_call()).structured_content["entries"]
+    assert [e["page_path"] for e in entries] == ["mcp/foo"]
+
+
+def test_mark_verified_rejects_path_traversal_and_double_slash():
+    assert _mark_call(path="a/../b").is_error
+    assert _mark_call(path="a//b").is_error
+
+
+def test_mark_verified_rejects_paths_that_could_only_create_orphan_keys():
+    """'//foo' must not be stored as '/foo', and 'foo/' or inner whitespace never match
+    the path wikijs_list_pages returns, so the baseline would report the page unchecked forever."""
+    assert _mark_call(path="//foo").is_error
+    assert _mark_call(path="foo/").is_error
+    assert _mark_call(path="/foo/ ").is_error
+    assert _mark_call(path="foo bar").is_error
+    assert _mark_call(path="/").is_error
+
+
+def test_page_history_tool_describes_the_verified_field():
+    import server
+
+    assert "verified" in (server.wikijs_get_page_history.__doc__ or "")
+
+
+def test_move_page_tool_notes_that_verified_refs_stay_on_the_old_path():
+    import server
+
+    doc = server.wikijs_move_page.__doc__ or ""
+    assert "verified" in doc.lower()

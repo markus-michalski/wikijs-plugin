@@ -89,8 +89,8 @@ def test_each_publish_recipe_runs_translation_check_before_first_publish_call():
 
 def test_new_doc_recipe_repeats_only_the_publish_steps_per_subpage():
     recipe = _section(_read(DOCS_COMMON), "### Neue Doku erstellen", "### Bestehende Doku updaten")
-    assert "Schritte 5-6 werden also pro Unterseite wiederholt" in recipe, (
-        "the per-subpage repeat note must cover the create calls (5-6), not the once-per-run check (4)"
+    assert "Schritte 6-8 laufen je Seite" in recipe, (
+        "the per-subpage repeat note must cover create and mark_verified (6-8), not the once-per-run checks (4-5)"
     )
 
 
@@ -102,9 +102,9 @@ def test_checklist_references_translation_check():
 
 def test_docs_wiki_runs_check_before_publish_step():
     skill_md = _read(DOCS_WIKI_SKILL)
-    check = skill_md.index("### 5a. Translation-Check")
+    check = skill_md.index("### 5b. Translation-Check")
     publish = skill_md.index("### 6. Publish")
-    assert check < publish, "docs-wiki must run translation-check (5a) before the publish step (6)"
+    assert check < publish, "docs-wiki must run translation-check (5b) before the publish step (6)"
 
 
 def test_docs_wiki_mode_bullets_do_not_publish():
@@ -116,8 +116,8 @@ def test_docs_wiki_mode_bullets_do_not_publish():
 def test_docs_wiki_fallback_without_mcp_still_runs_check():
     skill_md = _read(DOCS_WIKI_SKILL)
     start = skill_md.index("If Wiki.js MCP not available")
-    fallback = skill_md[start : start + 400]
-    assert "5a" in fallback, "the no-MCP fallback must include the translation-check step"
+    fallback = skill_md[start : start + 500]
+    assert "5b" in fallback, "the no-MCP fallback must include the translation-check step"
 
 
 def test_claude_md_routes_to_translation_check():

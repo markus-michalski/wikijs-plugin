@@ -73,7 +73,8 @@ zum Leser passt („Einsendung“ statt „Anfrage“ oder „Nachricht“).
 
 **Nicht Teil dieses Checks:** Inhaltliche Richtigkeit (falscher Pfad, falsche Beschreibung einer Klasse) steht in beiden
 Sprachen gleich und fällt deshalb weder beim Lesen noch beim DE/EN-Abgleich auf. Sie muss gegen den
-Quellcode des dokumentierten Projekts geprüft werden, nicht gegen den Text.
+Quellcode des dokumentierten Projekts geprüft werden, nicht gegen den Text. Das übernimmt
+`/wikijs-plugin:source-check`, das in `docs-wiki` vor diesem Check läuft.
 
 ### 4. EN-Prüfung (falls EN-Content vorhanden)
 
@@ -139,5 +140,5 @@ gelten sollen, gehören per Pull Request ins mitgelieferte Glossar.
 `docs-wiki` ruft diesen Skill in jedem Modus (Neue Doku, Update, Qualitäts-Upgrade) nach der
 Content-Generierung und vor dem ersten `wikijs_create_page`/`wikijs_update_page` auf, einmal für
 den gesamten Seiten-Satz. Ausgenommen sind Updates, die nur Links oder Metadaten ändern (z. B. die
-Kategorie-Karte). Siehe `docs-wiki/SKILL.md` Schritt 5a und die Rezepte in
+Kategorie-Karte). Siehe `docs-wiki/SKILL.md` Schritt 5b und die Rezepte in
 `templates/DOCS_COMMON.md`.

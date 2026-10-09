@@ -80,7 +80,7 @@ def _connect_with_retry() -> sqlite3.Connection:
 # has since changed — PRAGMA user_version is what lets a future _ensure_schema
 # actually detect "this file predates schema N" instead of assuming IF NOT
 # EXISTS covers evolution (it only covers absence).
-_SCHEMA_VERSION = 1
+_SCHEMA_VERSION = 2
 
 
 def _ensure_schema(conn: sqlite3.Connection) -> None:
@@ -102,13 +102,44 @@ def _ensure_schema(conn: sqlite3.Connection) -> None:
                 changed_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
                 source_repo TEXT    NOT NULL DEFAULT '',
                 source_ref  TEXT    NOT NULL DEFAULT '',
-                summary     TEXT    NOT NULL DEFAULT ''
+                summary     TEXT    NOT NULL DEFAULT '',
+                verified    INTEGER NOT NULL DEFAULT 0,
+                page_updated_at TEXT NOT NULL DEFAULT ''
             );
 
             CREATE INDEX IF NOT EXISTS idx_page_history_path
                 ON page_history(page_path, locale, changed_at DESC);
         """)
+        # v1 -> v2: a source_ref written by v1 means "written at", never "checked
+        # against the code", so existing rows keep verified = 0. page_updated_at
+        # records the Wiki.js updatedAt a page was verified at, so a later edit
+        # outside the gated flow can be detected.
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(page_history)")}
+        for name, definition in _V2_COLUMNS:
+            if name not in columns:
+                _add_column_tolerating_race(conn, name, definition)
         conn.execute(f"PRAGMA user_version = {_SCHEMA_VERSION}")
+
+
+_V2_COLUMNS = (
+    ("verified", "INTEGER NOT NULL DEFAULT 0"),
+    ("page_updated_at", "TEXT NOT NULL DEFAULT ''"),
+)
+
+
+def _add_column_tolerating_race(conn: sqlite3.Connection, name: str, definition: str) -> None:
+    """ALTER TABLE ADD COLUMN, treating 'duplicate column name' as success.
+
+    Python's sqlite3 does not wrap DDL in a transaction, so the table_info
+    check and the ALTER are not atomic. Two MCP processes migrating at the same
+    moment can both pass the check; the loser's ALTER then finds the column
+    already added by the winner, which is the state it wanted.
+    """
+    try:
+        conn.execute(f"ALTER TABLE page_history ADD COLUMN {name} {definition}")
+    except sqlite3.OperationalError as exc:
+        if "duplicate column name" not in str(exc).lower():
+            raise
 
 
 @contextmanager
