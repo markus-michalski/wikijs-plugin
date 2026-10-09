@@ -15,10 +15,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of terms that must stay as loanwords (e.g. "Cronjob"). It also compares the DE and EN versions
   of a page against each other and flags escaped-quote leftovers (backslash before a quote).
   Wired into `docs-wiki` as a mandatory step before every `wikijs_create_page`/`wikijs_update_page` call.
+- `source-check` skill: checks the factual claims of a page (paths, class and method names, config
+  keys, commands, descriptions) against the project's source code instead of the README. Covers
+  `config/**/*.yaml`, `config/services.php` and `templates/**/*.twig`, updates verified pages from
+  the git diff only, and has a `baseline` mode that checks all existing pages project by project
+  without changing them.
+- `wikijs_mark_verified` and `wikijs_get_verified_refs` MCP tools (local DB only). A `sourceRef`
+  logged by create/update means "written at"; only a ref set by `wikijs_mark_verified` counts as
+  verified and serves as the baseline for diff-based updates. The marker stores the page's
+  `updatedAt`, so a page edited afterwards outside the checked flow counts as unverified again.
 
 ### Changed
-- `docs-wiki` now runs `translation-check` before publishing. A FAIL verdict blocks the publish
-  until the content is revised, a WARN verdict asks the user once for the whole page set.
+- `docs-wiki` now runs `source-check` and then `translation-check` before publishing. A FAIL verdict
+  blocks the publish until the content is revised, a WARN verdict asks the user once for the whole
+  page set. After the publish the checked ref is stored as verified.
+- The page-history DB schema moves to version 2 (new `verified` and `page_updated_at` columns).
+  Existing rows migrate in place and stay unverified; an older plugin version can still read and
+  write the migrated DB. Run `/wikijs-plugin:source-check baseline` once after updating.
+- `wikijs_get_page_history` entries now include `verified` and `page_updated_at`.
 
 ### Deprecated
 - Nothing yet

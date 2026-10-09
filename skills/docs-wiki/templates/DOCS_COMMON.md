@@ -249,6 +249,13 @@ angelegt, bei Umbau oder neuer Unterseite wird sie nachgezogen. Format der Kateg
 Trifft ein Update oder Upgrade auf eine Einzelseite (alles auf einer Seite), wird sie in diesem
 Zug zu Hub + Unterseiten umgebaut. Danach nicht zurueck zur Einzelseite.
 
+**Nichts davon wird veroeffentlicht, bevor `/wikijs-plugin:source-check` und
+`/wikijs-plugin:translation-check` ueber den fertigen Seiten-Satz gelaufen sind.** Die Schritte 1-2
+(laden, Abschnitte zuweisen, Inhalte der neuen Seiten vorbereiten) laufen als Teil der
+Content-Erstellung des Rezepts. Die Schritte 3-6 (`wikijs_create_page`, `wikijs_update_page`,
+`wikijs_move_page`, Links, Karte) sind Publish-Schritte und kommen erst nach beiden Checks, sonst
+steht ein falscher Wert aus der README schon live, bevor der Source-Check ihn sieht.
+
 1. DE und EN laden (`wikijs_get_page`) und die Abschnitte inventarisieren
 2. Jedem Abschnitt eine Zielseite zuweisen (Standard-Unterseiten, Tabelle im Typ-Template).
    **Kein Abschnitt darf entfallen.** Vor dem Publish pruefen, dass jeder Abschnitt der alten Seite
@@ -384,23 +391,34 @@ die "Keine Versionsnummern im Fliesstext"-Regel oben, macht aber trotzdem nachvo
 welchem Source-Stand eine Seite zuletzt aktualisiert wurde — nuetzlich bei Projekten mit sehr
 haeufigen Aenderungen (z.B. taeglich mehrere Doku-Updates).
 
+Der `sourceRef` eines Publish bedeutet nur "geschrieben bei". Als Basis fuer ein Diff-Update
+(nur Aenderungen seit dem letzten Stand lesen) gilt erst der **Verified Ref**: Er wird mit
+`wikijs_mark_verified` gesetzt, nachdem `/wikijs-plugin:source-check` fuer diese Seite und diesen
+Ref bestanden war, und ist mit `wikijs_get_verified_refs` abrufbar. Ohne Verified Ref prueft
+`source-check` die ganze Seite gegen den Code. Der Stand liegt in der lokalen DB und gilt pro Rechner.
+
 ### Neue Doku erstellen
 
 Immer als Hub + Unterseiten (siehe "Hub + Unterseiten - PFLICHT"). `path` und `locale` gelten
-fuer jede einzelne Seite, die Schritte 5-6 werden also pro Unterseite wiederholt. Der
-Translation-Check (Schritt 4) laeuft dagegen einmal ueber den gesamten Seiten-Satz.
+fuer jede einzelne Seite, die Schritte 6-8 laufen je Seite (zuerst alle DE-Seiten, dann alle
+EN-Seiten, danach das Markieren je Seite und Sprache). Source-Check (Schritt 4) und Translation-Check
+(Schritt 5) laufen dagegen einmal ueber den gesamten Seiten-Satz.
 
 ```
 1. wikijs_search_pages(query: "projektname")                        → Pruefen ob Seite existiert
 2. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
 3. Seiten-Plan erstellen und Content mit Agents generieren           → Hub + Unterseiten, Enhanced Markdown
-4. /wikijs-plugin:translation-check über alle DE- und EN-Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
-5. wikijs_create_page(path, locale: "de", isPublished: true,
+4. /wikijs-plugin:source-check über alle DE- und EN-Seiten           → FAIL: mit Codewerten korrigieren, erneut prüfen; WARN: User fragen
+5. /wikijs-plugin:translation-check über alle DE- und EN-Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
+6. wikijs_create_page(path, locale: "de", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → je Unterseite DE, dann Hub DE
-6. wikijs_create_page(path, locale: "en", isPublished: true,
+7. wikijs_create_page(path, locale: "en", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → je Unterseite EN, dann Hub EN
-7. Kategorie-Seite: Karte mit Links auf die Unterseiten anlegen      → wikijs_get_page + wikijs_update_page
-8. wikijs_get_page(path, locale: "de")                               → Hub und Unterseiten verifizieren
+8. wikijs_get_page(path, locale) → updatedAt;
+   wikijs_mark_verified(path, locale, sourceRepo, sourceRef,
+                         pageUpdatedAt)                              → je Seite und Sprache, nur nach PASS oder vom User freigegebenem WARN
+9. Kategorie-Seite: Karte mit Links auf die Unterseiten anlegen      → wikijs_get_page + wikijs_update_page
+10. wikijs_get_page(path, locale: "de")                              → Hub und Unterseiten verifizieren
 ```
 
 Unterseiten zuerst, Hub zuletzt, damit die Links des Hubs nicht ins Leere laufen.
@@ -417,11 +435,15 @@ eine Einzelseite, zuerst "Bestehende Einzelseite umbauen" ausfuehren.
 3. Einzelseite? → zu Hub + Unterseiten umbauen (siehe oben)          → Umbau vor inhaltlichen Aenderungen
 4. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
 5. Content mit Agents ueberarbeiten                                  → Aenderungen einarbeiten
-6. /wikijs-plugin:translation-check über alle geänderten Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
-7. wikijs_update_page(path, locale: "de", isPublished: true,
+6. /wikijs-plugin:source-check über alle geänderten Seiten           → Gültiger Verified Ref: Code-Diff plus jeden geänderten Abschnitt prüfen; sonst ganze Seite (wird Baseline). FAIL: mit Codewerten korrigieren
+7. /wikijs-plugin:translation-check über alle geänderten Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
+8. wikijs_update_page(path, locale: "de", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → DE-Version updaten
-8. wikijs_update_page(path, locale: "en", isPublished: true,
+9. wikijs_update_page(path, locale: "en", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → EN-Version updaten
+10. wikijs_get_page(path, locale) → updatedAt;
+    wikijs_mark_verified(path, locale, sourceRepo, sourceRef,
+                          pageUpdatedAt)                             → je Seite und Sprache, nur nach PASS oder vom User freigegebenem WARN
 ```
 
 ### Qualitaets-Upgrade
@@ -437,17 +459,23 @@ eine Einzelseite, zuerst "Bestehende Einzelseite umbauen" ausfuehren.
    - Keine Praxisbeispiele?
 3. Agents gezielt einsetzen fuer Luecken
 4. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
-5. /wikijs-plugin:translation-check über alle geänderten Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
-6. wikijs_update_page(path, locale: "de", isPublished: true,
+5. /wikijs-plugin:source-check über alle geänderten Seiten           → Gültiger Verified Ref: Code-Diff plus jeden geänderten Abschnitt prüfen; sonst ganze Seite (wird Baseline). FAIL: mit Codewerten korrigieren
+6. /wikijs-plugin:translation-check über alle geänderten Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
+7. wikijs_update_page(path, locale: "de", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → DE-Version updaten
-7. wikijs_update_page(path, locale: "en", isPublished: true,
+8. wikijs_update_page(path, locale: "en", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → EN-Version updaten
+9. wikijs_get_page(path, locale) → updatedAt;
+   wikijs_mark_verified(path, locale, sourceRepo, sourceRef,
+                         pageUpdatedAt)                              → je Seite und Sprache, nur nach PASS oder vom User freigegebenem WARN
 ```
 
 ## Qualitaets-Checkliste (vor Publish)
 
 Vor dem Erstellen/Updaten ALLE Punkte pruefen:
 
+- [ ] `/wikijs-plugin:source-check` über DE- und EN-Content durchgelaufen, vor dem Translation-Check (Pfade, Klassen, Config-Keys, Befehle gegen den Code, nicht gegen die README)
+- [ ] Source-Check: PASS oder vom User freigegebenes WARN — bei FAIL nicht publizieren; danach `wikijs_mark_verified` mit `pageUpdatedAt` (nicht bei uncommittetem Projekt-Checkout)
 - [ ] `/wikijs-plugin:translation-check` über DE- und EN-Content durchgelaufen (DE ist hartes Gate, EN höchstens WARN)
 - [ ] Translation-Check: PASS, oder WARN mit User-Entscheidung — bei FAIL nicht publizieren
 - [ ] Hub + Unterseiten statt Einzelseite; Hub ist eine kurze Startseite mit Dokumentations-Tabelle

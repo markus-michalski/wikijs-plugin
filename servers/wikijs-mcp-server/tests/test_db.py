@@ -25,7 +25,114 @@ def test_init_db_creates_page_history_table():
 def test_page_history_table_has_expected_columns():
     with db_connection() as conn:
         cols = {r["name"] for r in conn.execute("PRAGMA table_info(page_history)").fetchall()}
-    assert cols == {"id", "page_path", "locale", "changed_at", "source_repo", "source_ref", "summary"}
+    assert cols == {
+        "id", "page_path", "locale", "changed_at", "source_repo", "source_ref", "summary",
+        "verified", "page_updated_at",
+    }
+
+
+_V1_TABLE = """
+    CREATE TABLE page_history (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        page_path   TEXT    NOT NULL,
+        locale      TEXT    NOT NULL,
+        changed_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+        source_repo TEXT    NOT NULL DEFAULT '',
+        source_ref  TEXT    NOT NULL DEFAULT '',
+        summary     TEXT    NOT NULL DEFAULT ''
+    );
+    INSERT INTO page_history (page_path, locale, source_ref) VALUES ('old/page', 'de', 'abc123');
+"""
+
+
+def test_unversioned_db_with_existing_table_migrates(monkeypatch, tmp_path):
+    """user_version 0 with a page_history table already present (DB created
+    before versioning existed) takes the same migration path as v1."""
+    legacy = tmp_path / "unversioned.db"
+    raw = sqlite3.connect(legacy)
+    raw.executescript(_V1_TABLE)
+    raw.commit()
+    raw.close()
+    monkeypatch.setattr(db_module, "get_db_path", lambda: legacy)
+
+    with db_connection() as conn:
+        row = conn.execute("SELECT source_ref, verified, page_updated_at FROM page_history").fetchone()
+    assert (row["source_ref"], row["verified"], row["page_updated_at"]) == ("abc123", 0, "")
+
+
+def test_migration_tolerates_a_concurrent_process_adding_the_columns(monkeypatch, tmp_path):
+    """Two MCP processes can both read a v1 schema and both run ALTER TABLE.
+    The loser must treat 'duplicate column name' as success instead of failing
+    its first history call."""
+    racing = tmp_path / "racing.db"
+    raw = sqlite3.connect(racing)
+    raw.executescript(_V1_TABLE)
+    raw.execute("ALTER TABLE page_history ADD COLUMN verified INTEGER NOT NULL DEFAULT 0")
+    raw.execute("ALTER TABLE page_history ADD COLUMN page_updated_at TEXT NOT NULL DEFAULT ''")
+    raw.execute("PRAGMA user_version = 1")
+    raw.commit()
+    raw.close()
+
+    class StaleColumnReads:
+        """Proxy whose PRAGMA table_info still shows the pre-migration columns."""
+
+        def __init__(self, conn):
+            self._conn = conn
+
+        def execute(self, sql, *args):
+            if sql.strip().upper().startswith("PRAGMA TABLE_INFO"):
+                return iter([{"name": n} for n in ("id", "page_path", "locale", "changed_at",
+                                                     "source_repo", "source_ref", "summary")])
+            return self._conn.execute(sql, *args)
+
+        def __getattr__(self, name):
+            return getattr(self._conn, name)
+
+        def __enter__(self):
+            return self._conn.__enter__()
+
+        def __exit__(self, *exc):
+            return self._conn.__exit__(*exc)
+
+    conn = sqlite3.connect(racing)
+    conn.row_factory = sqlite3.Row
+    try:
+        db_module._ensure_schema(StaleColumnReads(conn))  # must not raise
+        assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
+    finally:
+        conn.close()
+
+
+def test_existing_rows_are_unverified_after_migration_from_v1(monkeypatch, tmp_path):
+    """A v1 DB (written-at refs, no verified column) must migrate in place and
+    keep its rows as unverified: an old source_ref says where a page was
+    written, not that it was checked against the code."""
+    legacy = tmp_path / "legacy.db"
+    raw = sqlite3.connect(legacy)
+    raw.executescript("""
+        CREATE TABLE page_history (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            page_path   TEXT    NOT NULL,
+            locale      TEXT    NOT NULL,
+            changed_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+            source_repo TEXT    NOT NULL DEFAULT '',
+            source_ref  TEXT    NOT NULL DEFAULT '',
+            summary     TEXT    NOT NULL DEFAULT ''
+        );
+        INSERT INTO page_history (page_path, locale, source_ref) VALUES ('old/page', 'de', 'abc123');
+        PRAGMA user_version = 1;
+    """)
+    raw.commit()
+    raw.close()
+    monkeypatch.setattr(db_module, "get_db_path", lambda: legacy)
+
+    with db_connection() as conn:
+        row = conn.execute("SELECT source_ref, verified, page_updated_at FROM page_history").fetchone()
+        version = conn.execute("PRAGMA user_version").fetchone()[0]
+    assert row["source_ref"] == "abc123"
+    assert row["verified"] == 0
+    assert row["page_updated_at"] == ""
+    assert version == 2
 
 
 def test_init_db_is_idempotent():
@@ -45,7 +152,7 @@ def test_schema_version_is_recorded():
     definition has since changed, with no way to even notice."""
     with db_connection() as conn:
         version = conn.execute("PRAGMA user_version").fetchone()[0]
-    assert version >= 1
+    assert version >= 2
 
 
 def test_wal_mode_enabled():

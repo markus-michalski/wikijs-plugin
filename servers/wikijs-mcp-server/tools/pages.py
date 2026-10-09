@@ -365,6 +365,60 @@ def get_page_history(*, path: str, locale: str | None = None, limit: int = 20) -
     return {"path": path, "entries": history.get_page_history(path, locale=locale, limit=limit)}
 
 
+def _normalize_verification_path(path: str) -> str:
+    """Normalize a page path used as a verification lookup key.
+
+    The URL form "/mcp/foo" and the API form "mcp/foo" must map to the same row,
+    otherwise a verified page keeps showing up as unchecked. Like get_page_history,
+    this deliberately skips validate_path's charset rule (a page reached through an
+    ID-based update can have a live path validate_path would reject), but it still
+    rejects the shapes that would only ever create orphan keys.
+    """
+    path = path.strip()
+    # "//" is checked before the one leading "/" is dropped, so "//foo" is rejected
+    # instead of being stored as the orphan key "/foo".
+    if ".." in path or "//" in path:
+        raise ValueError('Path must not contain ".." or "//"')
+    path = path.removeprefix("/")
+    if not (1 <= len(path) <= 500):
+        raise ValueError("Path must be between 1 and 500 characters")
+    if path.endswith("/") or any(ch.isspace() for ch in path):
+        raise ValueError("Path must not end with a slash or contain whitespace")
+    return path
+
+
+def mark_verified(
+    *,
+    path: str,
+    locale: str,
+    source_repo: str,
+    source_ref: str,
+    page_updated_at: str,
+    summary: str = "",
+) -> dict[str, Any]:
+    """Local-only: record that a page was checked against the source at source_ref.
+
+    Takes no WikiJsClient and never rewrites the page, so the baseline run can
+    mark passing pages without touching Wiki.js.
+    """
+    path = _normalize_verification_path(path)
+    locale = validate_locale(locale)
+    history.mark_verified(
+        page_path=path, locale=locale, source_repo=source_repo,
+        source_ref=source_ref, page_updated_at=page_updated_at, summary=summary,
+    )
+    return {"message": f"Marked /{path} ({locale}) as verified at {source_ref.strip()}"}
+
+
+def get_verified_refs(*, path: str | None = None, locale: str | None = None) -> dict[str, Any]:
+    """Read-only: newest verified ref per page and locale (all pages when path is omitted)."""
+    if path is not None:
+        path = _normalize_verification_path(path)
+    if locale is not None:
+        locale = validate_locale(locale)
+    return {"entries": history.get_verified_refs(page_path=path, locale=locale)}
+
+
 def delete_page(
     client: WikiJsClient, *, page_id: int | None = None, path: str | None = None, locale: str = "en"
 ) -> dict[str, Any]:

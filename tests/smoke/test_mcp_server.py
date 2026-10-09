@@ -18,6 +18,8 @@ EXPECTED_TOOLS = {
     "wikijs_delete_page",
     "wikijs_move_page",
     "wikijs_get_page_history",
+    "wikijs_mark_verified",
+    "wikijs_get_verified_refs",
 }
 
 

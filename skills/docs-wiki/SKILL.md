@@ -38,6 +38,10 @@ Ask user which specific project to document (Freitext).
 
 Examples: "osticket-api-endpoints", "klaro-consent", "oxid7-sitemap", "wikijs-mcp-server"
 
+Klär dabei auch den **lokalen Checkout** des Projekts (Pfad, ist es ein Git-Repo?). Den Pfad beim
+User erfragen oder aus dem Kontext übernehmen, nie erraten: Der Source-Check (Schritt 5a) braucht den
+Quellcode, sonst bleibt nur die README als Quelle.
+
 ### 3. Choose Mode
 
 Ask with AskUserQuestion:
@@ -76,11 +80,32 @@ typ-spezifische Themen liegen auf Unterseiten, die Kategorie-Karte verlinkt dire
 2. **Update:** Bestehende Seite laden → ist sie eine Einzelseite, zuerst zu Hub + Unterseiten umbauen → Änderungen einarbeiten (DE + EN)
 3. **Qualitäts-Upgrade:** Bestehende Seite laden → Einzelseite umbauen, Lücken identifizieren → Agents gezielt einsetzen (DE + EN)
 
-Die Modi enden hier mit fertigem Content. Publiziert wird erst in Schritt 6, nach dem Translation-Check.
+Die Modi enden hier mit fertigem Content. Publiziert wird erst in Schritt 6, nach Source-Check und Translation-Check.
 
-### 5a. Translation-Check — PFLICHT vor jedem Publish
+### 5a. Source-Check — PFLICHT vor Translation-Check und Publish
 
-Nach der Content-Generierung (egal welcher Modus) und **vor** dem ersten
+Nach der Content-Generierung (egal welcher Modus) und **vor** dem Translation-Check:
+`/wikijs-plugin:source-check` einmal über den gesamten Seiten-Satz des Laufs. Er behandelt die README
+als Behauptung und prüft Pfade, Klassen, Config-Keys, Befehle und Beschreibungen gegen den
+Quellcode des Projekts. Fehler, die in DE und EN gleich stehen, findet nur dieser Check. Reine
+Link- oder Metadaten-Updates (z. B. die Kategorie-Karte) sind ausgenommen.
+
+- **Neue Doku:** ein Explore-Subagent liest das Projekt einmal vollständig, der Hauptkontext bleibt klein.
+- **Update / Qualitäts-Upgrade:** hat die Seite einen gültigen Verified Ref (`wikijs_get_verified_refs`,
+  `page_updated_at` passt zum Live-`updatedAt`), wird der Code-Diff seit diesem Ref gelesen **und**
+  jeder Abschnitt geprüft, dessen Text sich ändert. Ohne gültigen Verified Ref läuft der Claim-Check
+  über die ganze Seite und wird zur Baseline.
+- **FAIL** → Content mit dem Wert aus dem Code korrigieren, erneut prüfen. Nicht publizieren.
+- **WARN** → Fundstellen gesammelt dem User zeigen, Entscheidung einholen. Ein vom User
+  freigegebenes WARN zählt für das Markieren als bestanden.
+- **PASS** → weiter mit 5b. Nach dem Publish wird der geprüfte Ref mit `wikijs_mark_verified` gesetzt.
+
+Für alle bereits vorhandenen Seiten gibt es den Baseline-Lauf: `/wikijs-plugin:source-check baseline`.
+Er ändert keine Seite, meldet nur Fundstellen; Korrekturen laufen über den normalen Update-Ablauf.
+
+### 5b. Translation-Check — PFLICHT vor jedem Publish
+
+Nach dem Source-Check und **vor** dem ersten
 `wikijs_create_page`/`wikijs_update_page`-Aufruf: `/wikijs-plugin:translation-check` einmal über den
 gesamten Seiten-Satz des Laufs (alle DE-Seiten, alle EN-Seiten) laufen lassen. Der Check fängt
 unnatürlich oder wörtlich übersetzte Texte ab, etwa Fachbegriffe wie "Cronjob", die als Lehnwort
@@ -97,6 +122,11 @@ Siehe auch "Qualitaets-Checkliste (vor Publish)" in `DOCS_COMMON.md`.
 Seiten in der Reihenfolge der Rezepte in `DOCS_COMMON.md` ("Wiki.js MCP-Workflow") publizieren:
 Neue Doku legt zuerst alle DE-Seiten an (Unterseiten, dann Hub), danach alle EN-Seiten und zuletzt die Kategorie-Karte,
 Update und Qualitäts-Upgrade aktualisieren die betroffenen Seiten in DE + EN.
+
+Nach dem letzten Publish jeder Seite: `updatedAt` mit `wikijs_get_page` lesen und den geprüften Ref
+mit `wikijs_mark_verified(..., pageUpdatedAt)` setzen (nur nach PASS oder vom User freigegebenem WARN
+im Source-Check, und nicht bei uncommittetem Projekt-Checkout). Ohne diesen Schritt bleibt die Seite
+unverifiziert und wird beim nächsten Update wieder komplett geprüft.
 
 ## Quick Start
 
@@ -117,8 +147,8 @@ If user provides info like "/docs-wiki osTicket api-endpoints Qualitäts-Upgrade
 - If template not found: Output error, suggest checking template directory
 - If Wiki.js page not found (Update/Upgrade mode): Offer to create new page instead
 - If Wiki.js MCP not available: this blocks only the *publish* step, not the whole workflow —
-  still run Steps 4, 5 and 5a in full (load templates, run the agents, produce complete DE + EN
-  content with all Enhanced Markdown features, run the translation-check), then output that
+  still run Steps 4, 5, 5a and 5b in full (load templates, run the agents, produce complete DE + EN
+  content with all Enhanced Markdown features, run the source-check and the translation-check), then output that
   finished content as Markdown for manual
   copy instead of calling wikijs_create_page/wikijs_update_page. Do not stop early or ask the user
   to fix their MCP setup before continuing.

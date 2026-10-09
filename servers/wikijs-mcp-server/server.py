@@ -273,7 +273,9 @@ def wikijs_move_page(
 
     Note: wikijs_get_page_history entries logged before a move stay filed
     under the old path (page_history is keyed by path, not page ID) — they
-    won't show up when querying the new path.
+    won't show up when querying the new path. The same applies to verified
+    refs (wikijs_get_verified_refs): a moved page counts as never verified
+    and gets a full source-check on its next update.
 
     Args:
         destinationPath: New path for the page (e.g. "new-category/page-name")
@@ -315,6 +317,85 @@ def wikijs_get_page_history(
         limit: Max entries to return, newest first, default 20, max 200
 
     Returns:
-        {"path": ..., "entries": [{"changed_at", "locale", "source_repo", "source_ref", "summary"}, ...]}
+        {"path": ..., "entries": [{"id", "page_path", "changed_at", "locale", "source_repo",
+        "source_ref", "summary", "verified", "page_updated_at"}, ...]}
+        "verified" is 1 only for entries written by wikijs_mark_verified (the page was checked
+        against the source at that source_ref); entries from create/update are 0 and their
+        source_ref only means "written at".
     """
     return pages.get_page_history(path=path, locale=locale, limit=limit)
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=False
+    )
+)
+def wikijs_mark_verified(
+    path: str,
+    locale: str,
+    sourceRepo: str,
+    sourceRef: str,
+    pageUpdatedAt: str,
+    summary: str = "",
+) -> dict[str, Any]:
+    """Record that a page was checked against the source code at a given commit.
+
+    Local-only write to the SQLite history DB (~/.wikijs-plugin/wikijs-plugin.db) —
+    never calls the Wiki.js API and never changes the page. Call it only after
+    the source-check claim check passed for this page at sourceRef (or after the
+    reported findings were fixed). A sourceRef logged by create/update only means
+    "written at"; this marker means "verified at" and is what diff-based updates
+    start from.
+
+    Pass the page's current updatedAt (from wikijs_get_page, read AFTER the last
+    publish; wikijs_list_pages also returns it). It records which page state was
+    checked: if the live updatedAt later differs, the page was edited outside the
+    gated flow and the marker no longer counts.
+
+    Args:
+        path: Page path (same as passed to create_page/update_page; a leading "/" is ignored)
+        locale: Page locale (de, en, ...)
+        sourceRepo: Source project name (same value as used for create/update)
+        sourceRef: Git commit hash or tag the page was verified against (required)
+        pageUpdatedAt: The page's Wiki.js updatedAt at the time of the check (required)
+        summary: Optional one-line note, e.g. "baseline claim check"
+
+    Returns:
+        {"message": "..."}
+    """
+    return pages.mark_verified(
+        path=path, locale=locale, source_repo=sourceRepo, source_ref=sourceRef,
+        page_updated_at=pageUpdatedAt, summary=summary,
+    )
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=False
+    )
+)
+def wikijs_get_verified_refs(
+    path: str | None = None,
+    locale: str | None = None,
+) -> dict[str, Any]:
+    """Get the newest verified source ref per page and locale.
+
+    Local-only read from the SQLite history DB — never calls the Wiki.js API.
+    Pages that were never marked verified do not appear, including pages that
+    only have a written-at sourceRef from create/update. Omit path to list every
+    verified page (used by the baseline run to find what is still unchecked).
+
+    Compare "page_updated_at" with the page's live updatedAt (wikijs_get_page or
+    wikijs_list_pages): a difference means the page changed after it was checked,
+    so treat it as unverified.
+
+    Args:
+        path: Page path (optional; omit to list all verified pages; a leading "/" is ignored)
+        locale: Filter by locale (optional)
+
+    Returns:
+        {"entries": [{"page_path", "locale", "source_repo", "source_ref", "page_updated_at",
+        "verified_at"}, ...]}
+    """
+    return pages.get_verified_refs(path=path, locale=locale)
