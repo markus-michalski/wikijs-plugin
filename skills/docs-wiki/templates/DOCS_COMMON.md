@@ -10,7 +10,8 @@ Jede Wiki.js-Seite wird in **DE und EN** erstellt/aktualisiert.
 - Sprachlink oben auf jeder Seite:
   - DE-Seite: `[English Version](https://faq.markus-michalski.net/en/{path})`
   - EN-Seite: `[Deutsche Version](https://faq.markus-michalski.net/de/{path})`
-- Code-Beispiele, CLI-Befehle, technische Terme bleiben in beiden Versionen gleich
+- Code-Beispiele, CLI-Befehle, technische Terme bleiben in beiden Versionen gleich (welche
+  Begriffe Lehnwörter bleiben, steht im Glossar von `translation-check`)
 - Nur Fliesstext, Ueberschriften, Beschreibungen uebersetzen
 
 ## Wiki.js Enhanced Markdown - PFLICHT
@@ -386,18 +387,20 @@ haeufigen Aenderungen (z.B. taeglich mehrere Doku-Updates).
 ### Neue Doku erstellen
 
 Immer als Hub + Unterseiten (siehe "Hub + Unterseiten - PFLICHT"). `path` und `locale` gelten
-fuer jede einzelne Seite, die Schritte 4-5 werden also pro Unterseite wiederholt.
+fuer jede einzelne Seite, die Schritte 5-6 werden also pro Unterseite wiederholt. Der
+Translation-Check (Schritt 4) laeuft dagegen einmal ueber den gesamten Seiten-Satz.
 
 ```
 1. wikijs_search_pages(query: "projektname")                        → Pruefen ob Seite existiert
 2. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
 3. Seiten-Plan erstellen und Content mit Agents generieren           → Hub + Unterseiten, Enhanced Markdown
-4. wikijs_create_page(path, locale: "de", isPublished: true,
+4. /wikijs-plugin:translation-check über alle DE- und EN-Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
+5. wikijs_create_page(path, locale: "de", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → je Unterseite DE, dann Hub DE
-5. wikijs_create_page(path, locale: "en", isPublished: true,
+6. wikijs_create_page(path, locale: "en", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → je Unterseite EN, dann Hub EN
-6. Kategorie-Seite: Karte mit Links auf die Unterseiten anlegen      → wikijs_get_page + wikijs_update_page
-7. wikijs_get_page(path, locale: "de")                               → Hub und Unterseiten verifizieren
+7. Kategorie-Seite: Karte mit Links auf die Unterseiten anlegen      → wikijs_get_page + wikijs_update_page
+8. wikijs_get_page(path, locale: "de")                               → Hub und Unterseiten verifizieren
 ```
 
 Unterseiten zuerst, Hub zuletzt, damit die Links des Hubs nicht ins Leere laufen.
@@ -414,9 +417,10 @@ eine Einzelseite, zuerst "Bestehende Einzelseite umbauen" ausfuehren.
 3. Einzelseite? → zu Hub + Unterseiten umbauen (siehe oben)          → Umbau vor inhaltlichen Aenderungen
 4. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
 5. Content mit Agents ueberarbeiten                                  → Aenderungen einarbeiten
-6. wikijs_update_page(path, locale: "de", isPublished: true,
+6. /wikijs-plugin:translation-check über alle geänderten Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
+7. wikijs_update_page(path, locale: "de", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → DE-Version updaten
-7. wikijs_update_page(path, locale: "en", isPublished: true,
+8. wikijs_update_page(path, locale: "en", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → EN-Version updaten
 ```
 
@@ -433,9 +437,10 @@ eine Einzelseite, zuerst "Bestehende Einzelseite umbauen" ausfuehren.
    - Keine Praxisbeispiele?
 3. Agents gezielt einsetzen fuer Luecken
 4. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
-5. wikijs_update_page(path, locale: "de", isPublished: true,
+5. /wikijs-plugin:translation-check über alle geänderten Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
+6. wikijs_update_page(path, locale: "de", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → DE-Version updaten
-6. wikijs_update_page(path, locale: "en", isPublished: true,
+7. wikijs_update_page(path, locale: "en", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → EN-Version updaten
 ```
 
@@ -443,6 +448,8 @@ eine Einzelseite, zuerst "Bestehende Einzelseite umbauen" ausfuehren.
 
 Vor dem Erstellen/Updaten ALLE Punkte pruefen:
 
+- [ ] `/wikijs-plugin:translation-check` über DE- und EN-Content durchgelaufen (DE ist hartes Gate, EN höchstens WARN)
+- [ ] Translation-Check: PASS, oder WARN mit User-Entscheidung — bei FAIL nicht publizieren
 - [ ] Hub + Unterseiten statt Einzelseite; Hub ist eine kurze Startseite mit Dokumentations-Tabelle
 - [ ] Jede Unterseite hat Sprachlink, Link zurueck zum Hub, eigene Description und `{Projekt}: {Thema}`-Titel
 - [ ] Beim Umbau: jeder Abschnitt der alten Seite steht auf genau einer neuen Seite (nichts verloren)

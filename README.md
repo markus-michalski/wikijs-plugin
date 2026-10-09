@@ -40,6 +40,14 @@ Python (`mcp[cli]` + `httpx`), dedicated venv — same pattern as `mm-dev-toolki
 
 `/wikijs-plugin:docs-wiki` — orchestrates documentation sub-agents (docs-architect, mermaid-expert, tutorial-engineer, api-documenter, reference-builder) to create/update Wiki.js pages in DE+EN.
 
+### Skill (`skills/translation-check/`)
+
+`/wikijs-plugin:translation-check` — checks that DE (and optionally EN) page content reads
+naturally instead of like a literal translation. `docs-wiki` runs it as a mandatory gate before
+publishing: FAIL blocks the publish, WARN asks you, PASS continues. It uses a shipped glossary of
+terms that stay as loanwords (e.g. "Cronjob"); add your own entries in
+`~/.wikijs-plugin/glossary.local.md` (optional, takes precedence over the shipped glossary).
+
 ### Page-History Tracking
 
 `wikijs_create_page`/`wikijs_update_page` accept optional `sourceRepo`/`sourceRef`/`summary`
