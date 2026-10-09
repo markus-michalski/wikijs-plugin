@@ -10,10 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing yet
+- `translation-check` skill: pre-publish gate that checks whether DE (primary) and EN Wiki.js
+  content reads naturally instead of like a mechanical translation, with a maintained glossary
+  of terms that must stay as loanwords (e.g. "Cronjob"). It also compares the DE and EN versions
+  of a page against each other and flags escaped-quote leftovers (backslash before a quote).
+  Wired into `docs-wiki` as a mandatory step before every `wikijs_create_page`/`wikijs_update_page` call.
 
 ### Changed
-- Nothing yet
+- `docs-wiki` now runs `translation-check` before publishing. A FAIL verdict blocks the publish
+  until the content is revised, a WARN verdict asks the user once for the whole page set.
 
 ### Deprecated
 - Nothing yet

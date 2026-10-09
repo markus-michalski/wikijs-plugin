@@ -72,9 +72,31 @@ Based on loaded templates:
 der Projektpfad ist eine kurze Startseite, Installation/Konfiguration/Fehlerbehebung/Technik und
 typ-spezifische Themen liegen auf Unterseiten, die Kategorie-Karte verlinkt direkt darauf.
 
-1. **Neue Doku:** Codebase analysieren → Seiten-Plan (Hub + Unterseiten) → Content generieren → Unterseiten, dann Hub in DE + EN publizieren → Kategorie-Karte anlegen
-2. **Update:** Bestehende Seite laden → ist sie eine Einzelseite, zuerst zu Hub + Unterseiten umbauen → Änderungen einarbeiten → DE + EN updaten
-3. **Qualitäts-Upgrade:** Bestehende Seite laden → Einzelseite umbauen, Lücken identifizieren → Agents gezielt einsetzen → Updaten
+1. **Neue Doku:** Codebase analysieren → Seiten-Plan (Hub + Unterseiten) → Content für alle Seiten generieren (DE + EN)
+2. **Update:** Bestehende Seite laden → ist sie eine Einzelseite, zuerst zu Hub + Unterseiten umbauen → Änderungen einarbeiten (DE + EN)
+3. **Qualitäts-Upgrade:** Bestehende Seite laden → Einzelseite umbauen, Lücken identifizieren → Agents gezielt einsetzen (DE + EN)
+
+Die Modi enden hier mit fertigem Content. Publiziert wird erst in Schritt 6, nach dem Translation-Check.
+
+### 5a. Translation-Check — PFLICHT vor jedem Publish
+
+Nach der Content-Generierung (egal welcher Modus) und **vor** dem ersten
+`wikijs_create_page`/`wikijs_update_page`-Aufruf: `/wikijs-plugin:translation-check` einmal über den
+gesamten Seiten-Satz des Laufs (alle DE-Seiten, alle EN-Seiten) laufen lassen. Der Check fängt
+unnatürlich oder wörtlich übersetzte Texte ab, etwa Fachbegriffe wie "Cronjob", die als Lehnwort
+bleiben müssen. Reine Link- oder Metadaten-Updates (z. B. die Kategorie-Karte) sind ausgenommen.
+
+- **FAIL** → Content anhand der Fundstellen überarbeiten, danach erneut prüfen. Nicht publizieren.
+- **WARN** → Fundstellen gesammelt dem User zeigen, Entscheidung einholen (übernehmen oder "passt so").
+- **PASS** → Mit Schritt 6 fortfahren.
+
+Siehe auch "Qualitaets-Checkliste (vor Publish)" in `DOCS_COMMON.md`.
+
+### 6. Publish
+
+Seiten in der Reihenfolge der Rezepte in `DOCS_COMMON.md` ("Wiki.js MCP-Workflow") publizieren:
+Neue Doku legt zuerst alle DE-Seiten an (Unterseiten, dann Hub), danach alle EN-Seiten und zuletzt die Kategorie-Karte,
+Update und Qualitäts-Upgrade aktualisieren die betroffenen Seiten in DE + EN.
 
 ## Quick Start
 
@@ -95,7 +117,8 @@ If user provides info like "/docs-wiki osTicket api-endpoints Qualitäts-Upgrade
 - If template not found: Output error, suggest checking template directory
 - If Wiki.js page not found (Update/Upgrade mode): Offer to create new page instead
 - If Wiki.js MCP not available: this blocks only the *publish* step, not the whole workflow —
-  still run Steps 4-5 in full (load templates, run the agents, produce complete DE + EN content
-  with all Enhanced Markdown features), then output that finished content as Markdown for manual
+  still run Steps 4, 5 and 5a in full (load templates, run the agents, produce complete DE + EN
+  content with all Enhanced Markdown features, run the translation-check), then output that
+  finished content as Markdown for manual
   copy instead of calling wikijs_create_page/wikijs_update_page. Do not stop early or ask the user
   to fix their MCP setup before continuing.

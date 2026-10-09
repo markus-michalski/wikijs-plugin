@@ -28,6 +28,7 @@ use its tools instead of asking the user to open the Wiki.js admin UI.
 | User Intent | Skill |
 |------------|-------|
 | "Wiki-Doku erstellen/aktualisieren", "/docs-wiki" | `/wikijs-plugin:docs-wiki` |
+| "liest sich unnatürlich", "klingt übersetzt", "/translation-check" | `/wikijs-plugin:translation-check` |
 | "Plugin not responding", first install | `/wikijs-plugin:setup` |
 
 ---
@@ -46,5 +47,6 @@ pytest tests/smoke/test_skills.py -q
 pytest tests/smoke/test_knowledge.py -q
 pytest tests/smoke/test_state.py -q
 pytest tests/smoke/test_cross_platform.py -q
+pytest tests/smoke/test_translation_check.py -q
 pytest servers/wikijs-mcp-server/tests -q
 ```

@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "wikijs-plugin",
-      "description": "Wiki.js integration for Claude Code — MCP server + docs-wiki skill",
+      "description": "Wiki.js integration for Claude Code — MCP server + docs-wiki and translation-check skills",
       "version": "1.2.2",
       "source": "./"
     }
