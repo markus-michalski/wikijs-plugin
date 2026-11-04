@@ -260,7 +260,8 @@ steht ein falscher Wert aus der README schon live, bevor der Source-Check ihn si
 2. Jedem Abschnitt eine Zielseite zuweisen (Standard-Unterseiten, Tabelle im Typ-Template).
    **Kein Abschnitt darf entfallen.** Vor dem Publish pruefen, dass jeder Abschnitt der alten Seite
    auf genau einer neuen Seite wieder auftaucht
-3. Unterseiten zuerst anlegen (`wikijs_create_page`, DE + EN), danach den Hub per
+3. Unterseiten zuerst anlegen (`wikijs_create_page`, DE + EN, `isPublished: true` fuer Unterseiten,
+   die nur bestehenden Inhalt uebernehmen, `false` nur bei neuem Inhalt, siehe "Draft-first"), danach den Hub per
    `wikijs_update_page` auf die Kurzfassung reduzieren. Der Hub wird dabei weniger als halb so
    lang, also `confirmContentShrink: true` setzen (siehe "content ersetzt die GANZE Seite")
 4. Bestehende Unterseiten (z.B. bei StoryForge) auf Standard-Slugs pruefen: Weicht ein Slug nur
@@ -353,13 +354,86 @@ wikijs_update_page(path, locale, content, ..., confirmContentShrink: true, isPub
 ### isPublished PFLICHT
 
 **KRITISCH:** Bei JEDEM `wikijs_create_page` und `wikijs_update_page` Aufruf
-IMMER `isPublished: true` explizit setzen! Ohne diesen Parameter werden
-Seiten versehentlich als Draft gespeichert.
+`isPublished` **explizit** setzen, nie dem Default ueberlassen (der Default von
+`wikijs_create_page` ist `true`, eine vergessene Angabe veroeffentlicht also).
+Welcher Wert gilt, haengt vom Modus ab ("Draft-first" direkt darunter).
 
 ```
-wikijs_create_page(path, locale, content, ..., isPublished: true)
-wikijs_update_page(path, locale, content, ..., isPublished: true)
+wikijs_create_page(path, locale, content, ..., isPublished: false)   # Neue Doku
+wikijs_update_page(path, locale, content, ..., isPublished: true)    # Update, Upgrade
 ```
+
+### Draft-first - PFLICHT bei Neue Doku
+
+Neue Seiten werden **immer als Draft** angelegt (`isPublished: false`). Der Grund: Screenshots
+(siehe `SCREENSHOTS.md`) liegen beim Anlegen meist noch nicht vor, und eine Seite mit offenen
+Platzhaltern darf nicht oeffentlich sein.
+
+- `wikijs_create_page` in Neue Doku: **immer** `isPublished: false`, auch wenn der Skill keine
+  Screenshot-Vorschlaege gemacht hat. Ein Draft ist ein Zwischenstand, kein Endzustand
+- Veroeffentlicht wird nur ueber das "Freigabe-Gate" weiter unten, nie nebenbei
+- Der Draft-Stand durchlaeuft Source-Check und Translation-Check wie jeder andere Stand. Das
+  Gate ersetzt sie nicht
+- **Update und Qualitaets-Upgrade** bleiben unveraendert: Bestehende, bereits veroeffentlichte
+  Seiten bleiben live und werden mit `isPublished: true` aktualisiert. Eine live Seite wird
+  nie auf Draft zurueckgesetzt, weil Besucher sonst auf eine fehlende Seite laufen
+- Beim Umbau einer Einzelseite zu Hub + Unterseiten (Update, Upgrade) zaehlt der Inhalt: Eine
+  Unterseite, die nur **bereits live stehenden Inhalt** uebernimmt, wird mit `isPublished: true`
+  angelegt, sonst verschwindet dieser Inhalt oeffentlich, sobald der Hub gekuerzt wird. Nur eine
+  Unterseite mit **neuem Inhalt** ist ein Draft. Der live Hub verlinkt sie erst nach deren
+  Freigabe (sonst steht ein toter Link auf einer oeffentlichen Seite), und nach der Freigabe
+  wird der Hub (Dokumentations-Tabelle) und die Kategorie-Karte um den Link ergaenzt
+- Offene Screenshot-Marker gibt es auf live Seiten nicht: Bei Update und Upgrade schlaegt der
+  Skill die Screenshots nur vor und fuegt die Bilder erst ein, wenn sie geliefert sind. Bis dahin
+  bleibt der bisherige Seitenstand stehen
+
+### Freigabe-Gate - PFLICHT vor dem Veroeffentlichen eines Drafts
+
+Ein Draft wird **nie ohne Freigabe** veroeffentlicht. Eine Freigabe gibt es in genau zwei Faellen:
+
+1. **Screenshots geliefert:** Der User hat die fertigen Bild-URLs geliefert, die Marker sind durch
+   Bilder ersetzt, die Pruefung unten ist bestanden
+2. **Ausdrueckliche Freigabe:** Der User sagt ausdruecklich, dass die Seiten veroeffentlicht
+   werden sollen, auch mit offenen Screenshots (z. B. "veroeffentliche trotzdem", "Seiten
+   freigeben")
+
+Nicht als Freigabe zaehlen: Schweigen, bestandene Source- oder Translation-Checks, ein fertiger
+Text, "sieht gut aus", die Lieferung nur eines Teils der Screenshots, oder eine Freigabe fuer
+andere Seiten oder eine fruehere Sitzung. Im Zweifel nachfragen.
+
+**Pruefung bei Fall 1 (fail-closed):** Vor dem Umschalten auf `isPublished: true` alle Seiten des
+Satzes (DE und EN) pruefen:
+
+- Es steht kein Marker `Screenshot folgt [` und kein `Screenshot pending [` mehr im Content
+- Jede Bild-URL liefert ein Bild, geprueft mit einem GET statt HEAD (signierte CDNs antworten auf
+  HEAD teils mit 403 oder 405): `curl -sL -o /dev/null -r 0-0 -w '%{http_code} %{content_type}'
+  --max-time 15 "{url}"`. Bestanden ist nur Status 200 oder 206 **und** ein `Content-Type`, der
+  mit `image/` beginnt (eine HTML-Fehlerseite mit Status 200 faellt so durch). Alles andere (403,
+  404, Timeout, anderer Typ) blockiert das Veroeffentlichen, der Skill nennt URL und Seite
+- Eine Pruefung, die nicht laufen konnte (kein Netz, `curl` fehlt), zaehlt als nicht bestanden,
+  nicht als bestanden
+
+Bei Fall 2 entfaellt die Pruefung. Offene Marker bleiben dann auf der oeffentlichen Seite
+stehen, das sagt der Skill dem User vorher in einem Satz und listet die offenen IDs. Spaeter
+gelieferte Screenshots werden eingefuegt (Wiedereinstieg im Skill, Schritt 6a): Dort wird nicht nur
+nach Drafts gesucht, sondern auch nach live Seiten des Projekts, auf denen noch ein Marker steht.
+
+**Veroeffentlichen:** je Seite `wikijs_update_page(path, locale, isPublished: true, sourceRepo,
+sourceRef, summary)` ohne `content` (reines Metadaten-Update). Reihenfolge wie beim Anlegen:
+Unterseiten zuerst, Hub zuletzt. Danach `wikijs_mark_verified` je Seite und Sprache, danach die
+**Kategorie-Karte** anlegen oder nachziehen. Die Karte verlinkt auf die Unterseiten, deshalb
+entsteht sie erst nach der Freigabe, nie vorher.
+
+**Source-Ref bei spaeterer Freigabe (Wiedereinstieg):** `sourceRef` und das Ergebnis des
+Source-Checks leben nicht im Draft. Der `sourceRef` kommt aus `wikijs_get_page_history` (Eintrag,
+mit dem der Draft angelegt wurde), nicht aus einem neuen `git rev-parse HEAD`. `wikijs_mark_verified`
+nur setzen, wenn das PASS (oder das vom User freigegebene WARN) fuer genau diesen Stand in dieser
+Sitzung feststeht. Sonst den Source-Check ueber die Seiten neu laufen lassen oder das Markieren
+auslassen. Ein Ref, der nie geprueft wurde, darf nie als verifiziert eingetragen werden.
+
+Der Austausch Marker gegen Bild (siehe `SCREENSHOTS.md`) ist ein reiner Bild-Austausch und braucht
+keinen erneuten Source-Check oder Translation-Check. Aendert sich dabei auch Text, laufen beide
+Checks ueber die geaenderten Seiten.
 
 ### Source-Ref-Tracking (wenn verfuegbar)
 
@@ -380,7 +454,7 @@ Ist ein Git-Stand ermittelbar, bei JEDEM `wikijs_create_page`/`wikijs_update_pag
 zusaetzlich mitgeben:
 
 ```
-wikijs_create_page(path, locale, content, ..., isPublished: true,
+wikijs_create_page(path, locale, content, ..., isPublished: false,   # Neue Doku: Draft
                     sourceRepo: "{projektname aus Schritt 2}", sourceRef: "{git-hash}",
                     summary: "{ein Satz, was dokumentiert wurde}")
 ```
@@ -399,26 +473,36 @@ Ref bestanden war, und ist mit `wikijs_get_verified_refs` abrufbar. Ohne Verifie
 
 ### Neue Doku erstellen
 
-Immer als Hub + Unterseiten (siehe "Hub + Unterseiten - PFLICHT"). `path` und `locale` gelten
-fuer jede einzelne Seite, die Schritte 6-8 laufen je Seite (zuerst alle DE-Seiten, dann alle
-EN-Seiten, danach das Markieren je Seite und Sprache). Source-Check (Schritt 4) und Translation-Check
-(Schritt 5) laufen dagegen einmal ueber den gesamten Seiten-Satz.
+Immer als Hub + Unterseiten (siehe "Hub + Unterseiten - PFLICHT") und immer als Draft (siehe
+"Draft-first - PFLICHT"). `path` und `locale` gelten fuer jede einzelne Seite.
+Die Schritte 7-8 und 10-12 laufen je Seite (zuerst alle DE-Seiten, dann alle EN-Seiten, danach das
+Markieren je Seite und Sprache). Screenshot-Vorschlaege (Schritt 4), Source-Check (Schritt 5) und
+Translation-Check (Schritt 6) laufen dagegen einmal ueber den gesamten Seiten-Satz. Die Schritte
+9-14 beginnen erst mit der Freigabe.
 
 ```
 1. wikijs_search_pages(query: "projektname")                        → Pruefen ob Seite existiert
 2. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
 3. Inventar aus dem Code bauen (Explore, source-check 1a), dann Seiten-Plan erstellen und Content mit Agents generieren → Hub + Unterseiten, Enhanced Markdown
-4. /wikijs-plugin:source-check über alle DE- und EN-Seiten           → FAIL: mit Codewerten korrigieren, erneut prüfen; WARN: User fragen
-5. /wikijs-plugin:translation-check über alle DE- und EN-Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
-6. wikijs_create_page(path, locale: "de", isPublished: true,
-                       sourceRepo, sourceRef, summary, ...)          → je Unterseite DE, dann Hub DE
-7. wikijs_create_page(path, locale: "en", isPublished: true,
-                       sourceRepo, sourceRef, summary, ...)          → je Unterseite EN, dann Hub EN
-8. wikijs_get_page(path, locale) → updatedAt;
-   wikijs_mark_verified(path, locale, sourceRepo, sourceRef,
-                         pageUpdatedAt)                              → je Seite und Sprache, nur nach PASS oder vom User freigegebenem WARN
-9. Kategorie-Seite: Karte mit Links auf die Unterseiten anlegen      → wikijs_get_page + wikijs_update_page
-10. wikijs_get_page(path, locale: "de")                              → Hub und Unterseiten verifizieren
+4. Screenshot-Vorschlaege (SCREENSHOTS.md): Marker in den Content setzen, Vorschlagsliste dem User zeigen → DE und EN mit identischen IDs
+5. /wikijs-plugin:source-check über alle DE- und EN-Seiten           → FAIL: mit Codewerten korrigieren, erneut prüfen; WARN: User fragen
+6. /wikijs-plugin:translation-check über alle DE- und EN-Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
+7. wikijs_create_page(path, locale: "de", isPublished: false,
+                       sourceRepo, sourceRef, summary, ...)          → je Unterseite DE, dann Hub DE (Draft)
+8. wikijs_create_page(path, locale: "en", isPublished: false,
+                       sourceRepo, sourceRef, summary, ...)          → je Unterseite EN, dann Hub EN (Draft)
+   Ende des Laufs ohne Freigabe: Draft-Pfade und offene Marker-IDs nennen, dann stoppen
+9. Freigabe-Gate: Screenshot-URLs vom User → Marker ersetzen          → wikijs_get_page + wikijs_update_page(..., isPublished: false), Pruefung laut Gate
+   ODER ausdrueckliche Freigabe des Users                             → ohne Pruefung, offene IDs vorher nennen
+10. wikijs_update_page(path, locale: "de", isPublished: true,
+                        sourceRepo, sourceRef, summary)              → ohne content, je Unterseite DE, dann Hub DE
+11. wikijs_update_page(path, locale: "en", isPublished: true,
+                        sourceRepo, sourceRef, summary)              → ohne content, je Unterseite EN, dann Hub EN
+12. wikijs_get_page(path, locale) → updatedAt;
+    wikijs_mark_verified(path, locale, sourceRepo, sourceRef,
+                          pageUpdatedAt)                             → je Seite und Sprache, nur nach PASS oder vom User freigegebenem WARN
+13. Kategorie-Seite: Karte mit Links auf die Unterseiten anlegen      → wikijs_get_page + wikijs_update_page, erst nach der Freigabe
+14. wikijs_get_page(path, locale: "de")                              → Hub und Unterseiten verifizieren
 ```
 
 Unterseiten zuerst, Hub zuletzt, damit die Links des Hubs nicht ins Leere laufen.
@@ -496,7 +580,10 @@ Vor dem Erstellen/Updaten ALLE Punkte pruefen:
 - [ ] DE + EN Version vorhanden
 - [ ] Sprachlink oben auf beiden Versionen korrekt
 - [ ] Badges aktuell (Version, CI-Status, Lizenz)
-- [ ] `isPublished: true` bei jedem MCP-Aufruf gesetzt
+- [ ] `isPublished` bei jedem MCP-Aufruf explizit gesetzt: Neue Doku `false` (Draft), Update/Upgrade und Freigabe `true`
+- [ ] Neue Doku: Screenshot-Vorschlaege gemacht (Marker mit identischen IDs in DE und EN, ausser bei sprachabhaengigen Motiven mit `_de`/`_en`-Suffix, Vorschlagsliste gezeigt) oder bewusst keine, weil das Projekt keine sinnvollen Motive hat
+- [ ] Neue Doku: nichts veroeffentlicht ohne Freigabe-Gate (Screenshots geliefert und geprueft, oder ausdrueckliche Freigabe des Users)
+- [ ] Kategorie-Karte erst nach der Freigabe angelegt, nicht auf Draft-Seiten verlinkt
 - [ ] Mermaid: `graph` statt `flowchart`, Labels in Quotes, kein `::` oder `*`
 - [ ] Callout Boxes (`> ...`) stehen als eine einzige unumbrochene Zeile im Quelltext, nie manuell umgebrochen
 

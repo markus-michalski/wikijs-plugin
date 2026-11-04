@@ -28,9 +28,21 @@ use its tools instead of asking the user to open the Wiki.js admin UI.
 | User Intent | Skill |
 |------------|-------|
 | "Wiki-Doku erstellen/aktualisieren", "/docs-wiki" | `/wikijs-plugin:docs-wiki` |
+| "Screenshots geliefert", "Screenshot-URLs", "Seiten freigeben/veröffentlichen" (Draft aus einem früheren Lauf) | `/wikijs-plugin:docs-wiki` (Freigabe-Gate) |
 | "Doku gegen den Code prüfen", "stimmt die Doku?", "fehlt etwas in der Doku?", "Baseline-Lauf", "/source-check" | `/wikijs-plugin:source-check` |
 | "liest sich unnatürlich", "klingt übersetzt", "/translation-check" | `/wikijs-plugin:translation-check` |
 | "Plugin not responding", first install | `/wikijs-plugin:setup` |
+
+---
+
+## Neue Doku: Draft-first mit Screenshot-Vorschlägen
+
+Neue Wiki.js-Seiten (Modus "Neue Doku") werden **immer als Draft** angelegt (`isPublished: false`),
+mit Screenshot-Vorschlägen und Platzhalter-Markern im Text. Veröffentlicht wird **nie ohne
+Freigabe**: erst wenn der User die Screenshots als fertige CDN-URLs geliefert hat (und die Prüfung
+besteht) oder ausdrücklich die Veröffentlichung verlangt. Die CDN-URLs sind signiert, nie selbst
+erzeugen. Details: `skills/docs-wiki/templates/SCREENSHOTS.md` und "Draft-first" / "Freigabe-Gate"
+in `skills/docs-wiki/templates/DOCS_COMMON.md`. Update und Qualitäts-Upgrade lassen live Seiten live.
 
 ---
 
@@ -51,5 +63,6 @@ pytest tests/smoke/test_cross_platform.py -q
 pytest tests/smoke/test_translation_check.py -q
 pytest tests/smoke/test_source_check.py -q
 pytest tests/smoke/test_source_check_inventory.py -q
+pytest tests/smoke/test_screenshots.py -q
 pytest servers/wikijs-mcp-server/tests -q
 ```

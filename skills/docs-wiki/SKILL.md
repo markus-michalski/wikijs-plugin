@@ -3,9 +3,11 @@ name: docs-wiki
 description: |
   Create or update Wiki.js documentation using documentation agents with enhanced Markdown.
   Use when: (1) User types /docs-wiki, (2) "Wiki-Doku erstellen/aktualisieren",
-  (3) "Dokumentation für Wiki.js", (4) "Qualitäts-Upgrade der Doku"
+  (3) "Dokumentation für Wiki.js", (4) "Qualitäts-Upgrade der Doku",
+  (5) "Screenshots geliefert", "Seiten freigeben/veröffentlichen" (Freigabe eines Drafts)
   Supports: osTicket, Shopware6, OXID, Sylius, MCP, Bash/Shell, Claude Agents.
-  Integrates Wiki.js MCP for direct publishing in DE + EN.
+  Integrates Wiki.js MCP for DE + EN pages. New docs are created as drafts with screenshot
+  suggestions and published only after the user delivers screenshots or explicitly approves.
 model: claude-sonnet-5
 user-invocable: true
 ---
@@ -51,10 +53,11 @@ Ask with AskUserQuestion:
 
 ### 4. Load Templates
 
-Read TWO files from `{base_directory}/templates/`:
+Read THREE files from `{base_directory}/templates/`:
 
-1. **IMMER:** `DOCS_COMMON.md` (gemeinsame Regeln, Agent-Orchestrierung, Qualitäts-Checkliste)
-2. **Typ-spezifisch:** Datei aus folgender Tabelle
+1. **IMMER:** `DOCS_COMMON.md` (gemeinsame Regeln, Agent-Orchestrierung, Qualitäts-Checkliste, Draft-first, Freigabe-Gate)
+2. **IMMER:** `SCREENSHOTS.md` (Screenshot-Vorschläge, Platzhalter-Marker, Ersetzen durch CDN-Bilder)
+3. **Typ-spezifisch:** Datei aus folgender Tabelle
 
 #### Template-Mapping
 
@@ -80,7 +83,23 @@ typ-spezifische Themen liegen auf Unterseiten, die Kategorie-Karte verlinkt dire
 2. **Update:** Bestehende Seite laden → ist sie eine Einzelseite, zuerst zu Hub + Unterseiten umbauen → Änderungen einarbeiten (DE + EN)
 3. **Qualitäts-Upgrade:** Bestehende Seite laden → Einzelseite umbauen, Lücken identifizieren → Agents gezielt einsetzen (DE + EN)
 
-Die Modi enden hier mit fertigem Content. Publiziert wird erst in Schritt 6, nach Source-Check und Translation-Check.
+Die Modi enden hier mit fertigem Content. Angelegt wird erst in Schritt 6, nach Screenshot-Vorschlägen (5c), Source-Check und Translation-Check.
+
+### 5c. Screenshot-Vorschläge — vor Source-Check und Translation-Check
+
+Nach der Content-Generierung und **vor** dem Source-Check (die Nummer 5c bleibt aus Kompatibilität
+bestehen, der Schritt läuft zeitlich vor 5a): Regeln aus `SCREENSHOTS.md` anwenden.
+
+- Im Content die Stellen bestimmen, an denen Lesende etwas sehen müssen, und dort Marker setzen
+  (`> Screenshot folgt [{id}]: {Beschreibung}`, EN: `Screenshot pending`). Die ID ist auf DE- und
+  EN-Seite identisch, außer bei Motiven, in denen die Sprache sichtbar ist (dann `_de` / `_en`).
+- Dem User die Vorschlagsliste zeigen (ID, Seite, Motiv, Vorbereitung, Dateiname), danach nichts
+  weiter abfragen. Gibt es keine sinnvollen Motive, das sagen und keine Marker setzen.
+- Die CDN-URLs sind signiert: **nie selbst erzeugen oder raten**, sie kommen fertig vom User.
+- Marker und Draft gelten bei **Neue Doku**. Bei Update und Qualitäts-Upgrade gibt es nur die
+  Vorschlagsliste, und nur wenn der Text neue sichtbare Bedienschritte bekommt. Marker kommen
+  nicht auf die live Seite, sie wird erst mit den gelieferten Bildern aktualisiert (siehe
+  "Draft-first" in `DOCS_COMMON.md`).
 
 ### 5a. Source-Check — PFLICHT vor Translation-Check und Publish
 
@@ -123,16 +142,48 @@ bleiben müssen. Reine Link- oder Metadaten-Updates (z. B. die Kategorie-Karte) 
 
 Siehe auch "Qualitaets-Checkliste (vor Publish)" in `DOCS_COMMON.md`.
 
-### 6. Publish
+### 6. Publish (Anlegen als Draft, Freigabe, Veröffentlichen)
 
-Seiten in der Reihenfolge der Rezepte in `DOCS_COMMON.md` ("Wiki.js MCP-Workflow") publizieren:
-Neue Doku legt zuerst alle DE-Seiten an (Unterseiten, dann Hub), danach alle EN-Seiten und zuletzt die Kategorie-Karte,
-Update und Qualitäts-Upgrade aktualisieren die betroffenen Seiten in DE + EN.
+Seiten in der Reihenfolge der Rezepte in `DOCS_COMMON.md` ("Wiki.js MCP-Workflow") schreiben:
 
-Nach dem letzten Publish jeder Seite: `updatedAt` mit `wikijs_get_page` lesen und den geprüften Ref
-mit `wikijs_mark_verified(..., pageUpdatedAt)` setzen (nur nach PASS oder vom User freigegebenem WARN
-im Source-Check, und nicht bei uncommittetem Projekt-Checkout). Ohne diesen Schritt bleibt die Seite
-unverifiziert und wird beim nächsten Update wieder komplett geprüft.
+- **Neue Doku:** zuerst alle DE-Seiten (Unterseiten, dann Hub), danach alle EN-Seiten, alles als
+  **Draft** (`isPublished: false`). Danach endet der Lauf, der Skill nennt die Draft-Pfade und die
+  offenen Screenshot-IDs. Veröffentlicht wird nur über das Freigabe-Gate (6a).
+- **Update und Qualitäts-Upgrade:** die betroffenen Seiten in DE + EN mit `isPublished: true`
+  aktualisieren. Bestehende live Seiten werden nie auf Draft zurückgesetzt.
+
+`isPublished` wird bei jedem Aufruf explizit gesetzt, nie dem Default überlassen.
+
+### 6a. Freigabe-Gate — nie ohne Freigabe veröffentlichen
+
+Ein Draft wird **nie ohne Freigabe** veröffentlicht. Freigabe heißt: (a) der User hat die
+Screenshots geliefert und die Prüfung ist bestanden, oder (b) der User hat **ausdrücklich** gesagt,
+dass die Seiten veröffentlicht werden sollen. Schweigen, bestandene Checks, ein fertiger Text oder
+nur ein Teil der Screenshots zählen nicht. Im Zweifel nachfragen. Die genaue Prüfung (keine offenen
+Marker, jede Bild-URL liefert ein Bild, fail-closed) steht im "Freigabe-Gate" in `DOCS_COMMON.md`.
+
+Wiedereinstieg, wenn der User später Screenshot-URLs liefert oder die Freigabe gibt (auch in einer
+neuen Sitzung):
+
+1. Die Seiten des Projekts finden: `wikijs_list_pages` (liefert `path` und `isPublished`, ist
+   paginiert: mit `offset` weiterblättern, bis `has_more` false ist), nach Pfad-Präfix filtern. Gesucht sind Drafts (`isPublished` `false`) **und** live Seiten, auf denen
+   noch ein Marker `Screenshot folgt [` / `Screenshot pending [` steht (z. B. nach einer Freigabe
+   mit offenen Screenshots). Die Volltextsuche ist dafür nicht verlässlich
+2. Die URLs über die ID den Markern zuordnen (`SCREENSHOTS.md`) und die Seite mit den Bildern
+   aktualisieren (Draft bleibt `isPublished: false`, live Seiten bleiben live)
+3. Bei einem Draft das Gate durchlaufen. Dazu braucht es keinen neuen Lauf über Schritt 1 bis 5
+
+Der `sourceRef` für das Veröffentlichen kommt aus `wikijs_get_page_history` (Eintrag, mit dem der
+Draft angelegt wurde), nicht aus einem neuen `git rev-parse HEAD`. Das Ergebnis des Source-Checks
+steht nicht im Draft: `wikijs_mark_verified` nur setzen, wenn PASS (oder ein vom User freigegebenes
+WARN) für genau diesen Stand in dieser Sitzung feststeht. Sonst den Source-Check neu laufen lassen
+oder das Markieren auslassen. Ein nie geprüfter Ref wird nie als verifiziert eingetragen.
+
+Nach dem Veröffentlichen, in dieser Reihenfolge: `updatedAt` mit `wikijs_get_page` lesen und den
+geprüften Ref mit `wikijs_mark_verified(..., pageUpdatedAt)` setzen (nur nach PASS oder vom User
+freigegebenem WARN im Source-Check, und nicht bei uncommittetem Projekt-Checkout), danach die
+Kategorie-Karte anlegen (erst jetzt, nie auf Draft-Seiten verlinken). Ohne die Markierung bleibt die
+Seite unverifiziert und wird beim nächsten Update wieder komplett geprüft.
 
 ## Quick Start
 
@@ -154,7 +205,9 @@ If user provides info like "/docs-wiki osTicket api-endpoints Qualitäts-Upgrade
 - If Wiki.js page not found (Update/Upgrade mode): Offer to create new page instead
 - If Wiki.js MCP not available: this blocks only the *publish* step, not the whole workflow —
   still run Steps 4, 5, 5a and 5b in full (load templates, run the agents, produce complete DE + EN
-  content with all Enhanced Markdown features, run the source-check and the translation-check), then output that
-  finished content as Markdown for manual
+  content with all Enhanced Markdown features, screenshot suggestions with markers, the source-check
+  and the translation-check), then output that finished content as Markdown for manual
   copy instead of calling wikijs_create_page/wikijs_update_page. Do not stop early or ask the user
   to fix their MCP setup before continuing.
+- If the user delivers screenshot URLs that match no marker ID: ask which marker each belongs to,
+  never guess an assignment and never build a CDN URL yourself (they are signed).

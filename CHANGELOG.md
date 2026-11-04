@@ -10,10 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing yet
+- `docs-wiki`: Screenshot-Vorschläge bei neuen Dokus (`templates/SCREENSHOTS.md`): Marker im Text, Vorschlagsliste mit ID, Seite, Motiv, Vorbereitung und Dateiname, Zuordnung gelieferter CDN-URLs über die ID
+- `docs-wiki`: Freigabe-Gate: Drafts werden nie ohne Freigabe veröffentlicht, entweder nach Lieferung der Screenshots (offene Marker und tote Bild-URLs blockieren, fail-closed) oder auf ausdrückliche Anweisung
 
 ### Changed
-- Nothing yet
+- `docs-wiki`: Neue Doku legt Seiten als Draft an (`isPublished: false`) statt direkt zu veröffentlichen; die Kategorie-Karte entsteht erst nach der Freigabe. Update und Qualitäts-Upgrade lassen live Seiten live
 
 ### Deprecated
 - Nothing yet
