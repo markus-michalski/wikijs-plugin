@@ -10,11 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `docs-wiki`: Screenshot-Vorschläge bei neuen Dokus (`templates/SCREENSHOTS.md`): Marker im Text, Vorschlagsliste mit ID, Seite, Motiv, Vorbereitung und Dateiname, Zuordnung gelieferter CDN-URLs über die ID
-- `docs-wiki`: Freigabe-Gate: Drafts werden nie ohne Freigabe veröffentlicht, entweder nach Lieferung der Screenshots (offene Marker und tote Bild-URLs blockieren, fail-closed) oder auf ausdrückliche Anweisung
+- Nothing yet
 
 ### Changed
-- `docs-wiki`: Neue Doku legt Seiten als Draft an (`isPublished: false`) statt direkt zu veröffentlichen; die Kategorie-Karte entsteht erst nach der Freigabe. Update und Qualitäts-Upgrade lassen live Seiten live
+- Nothing yet
 
 ### Deprecated
 - Nothing yet
@@ -27,6 +26,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 - Nothing yet
+
+## [1.5.0] - 2026-11-04
+
+### Added
+- draft-first new docs with screenshot suggestions and release gate (#25)
+
+### Changed
+- Dependabot auf monatlichen Rhythmus umstellen (#23)
+- Bump the pip-all group across 1 directory with 4 updates (#17)
 
 ## [1.4.0] - 2026-10-09
 
@@ -85,9 +93,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [1.0.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.0.0
 [1.1.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.1.0
-[Unreleased]: https://github.com/markus-michalski/wikijs-plugin/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/markus-michalski/wikijs-plugin/compare/v1.5.0...HEAD
 [1.2.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.0
 [1.2.1]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.1
 [1.2.2]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.2
 [1.3.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.3.0
 [1.4.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.4.0
+[1.5.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.5.0
