@@ -89,8 +89,9 @@ def test_each_publish_recipe_runs_translation_check_before_first_publish_call():
 
 def test_new_doc_recipe_repeats_only_the_publish_steps_per_subpage():
     recipe = _section(_read(DOCS_COMMON), "### Neue Doku erstellen", "### Bestehende Doku updaten")
-    assert "Schritte 6-8 laufen je Seite" in recipe, (
-        "the per-subpage repeat note must cover create and mark_verified (6-8), not the once-per-run checks (4-5)"
+    assert "Schritte 7-8 und 10-12 laufen je Seite" in recipe, (
+        "the per-subpage repeat note must cover create, publish and mark_verified (7-8, 10-12),"
+        " not the once-per-run steps (4-6: screenshots, source-check, translation-check)"
     )
 
 
