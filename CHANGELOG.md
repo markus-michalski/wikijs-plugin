@@ -27,6 +27,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Nothing yet
 
+## [1.5.1] - 2026-11-06
+
+### Fixed
+- remove width specification for page screenshots to ensure proper display (#26)
+
 ## [1.5.0] - 2026-11-04
 
 ### Added
@@ -93,10 +98,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [1.0.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.0.0
 [1.1.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.1.0
-[Unreleased]: https://github.com/markus-michalski/wikijs-plugin/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/markus-michalski/wikijs-plugin/compare/v1.5.1...HEAD
 [1.2.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.0
 [1.2.1]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.1
 [1.2.2]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.2
 [1.3.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.3.0
 [1.4.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.4.0
 [1.5.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.5.0
+[1.5.1]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.5.1
