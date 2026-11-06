@@ -93,12 +93,15 @@ Pfadsegment ohne Endung, auch hinter einem Quellpfad wie `plain/s3://...`) ist d
 Dateiname zu einer ID oder ist er in der URL nicht erkennbar, fragt der Skill nach, statt zu raten.
 
 ```markdown
-![Plugin-Konfiguration im Admin mit aktiviertem ALTCHA-Feld]({url-vom-user} =600x)
+![Plugin-Konfiguration im Admin mit aktiviertem ALTCHA-Feld]({url-vom-user})
 ```
 
 - Die URL wird unveraendert uebernommen, inklusive Signatur
 - Alt-Text = die Beschreibung aus dem Marker
-- Breite `=600x` fuer Seiten-Screenshots, kleiner (`=300x`) bei schmalen Dialogen
+- Keine Breitenangabe fuer Seiten-Screenshots: Wiki.js zeigt sie in voller Spaltenbreite. Ein
+  Zusatz wie `=600x` verkleinert 1200 px breite Admin-Screenshots auf die Haelfte, die UI-Schrift
+  ist dann unleserlich (schmale Streifen wie Hinweisboxen am schlimmsten). Eine Breite nur bei
+  Bildern setzen, die von sich aus klein sind (schmale Dialoge, Logos), z. B. `=300x`
 - Der Austausch ist ein inhaltliches Update der Draft-Seite (`wikijs_get_page`, ganzen Content
   anpassen, `wikijs_update_page` mit `isPublished: false`)
 - Eine geloeste ID verschwindet aus der Vorschlagsliste, die offene Rest-Liste zeigt der Skill

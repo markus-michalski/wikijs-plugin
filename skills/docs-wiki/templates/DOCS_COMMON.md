@@ -99,9 +99,11 @@ graph LR
 ### Bild-Dimensionen (wenn Bilder vorhanden)
 
 ```markdown
-![Screenshot Admin Panel](url =600x)
+![Screenshot Admin Panel](url)
 ![Logo](url =200x)
 ```
+
+Screenshots ganzer Seiten oder Admin-Ansichten ohne Breitenangabe einbinden (siehe `SCREENSHOTS.md`), eine feste Breite nur bei kleinen Bildern wie Logos.
 
 ## Keine Emojis in Ueberschriften
 
