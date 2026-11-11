@@ -100,10 +100,11 @@ graph LR
 
 ```markdown
 ![Screenshot Admin Panel](url)
+![Zahlart-Block im Checkout](url =537x)
 ![Logo](url =200x)
 ```
 
-Screenshots ganzer Seiten oder Admin-Ansichten ohne Breitenangabe einbinden (siehe `SCREENSHOTS.md`), eine feste Breite nur bei kleinen Bildern wie Logos.
+Ganze Screens (ca. 2400 px breit) ohne Breitenangabe einbinden. Ausschnitte und kleine Dialoge (Zahlart-Block, Hinweisbox, einzelne Formularfelder) mit `=Wx`, W = Pixelbreite / 2. Logos und andere Bilder, die keine Aufnahme sind, mit kleiner Festbreite. Aufnahme-Regeln und Hilfsskript stehen in `SCREENSHOTS.md`.
 
 ## Keine Emojis in Ueberschriften
 
@@ -414,6 +415,20 @@ Satzes (DE und EN) pruefen:
   404, Timeout, anderer Typ) blockiert das Veroeffentlichen, der Skill nennt URL und Seite
 - Eine Pruefung, die nicht laufen konnte (kein Netz, `curl` fehlt), zaehlt als nicht bestanden,
   nicht als bestanden
+
+**Breitenpruefung (Warnung, blockiert nicht):** Fuer jedes Screenshot-Bild der Seiten die
+Pixelbreite lesen und mit der Breitenangabe vergleichen (Regeln in `SCREENSHOTS.md`, Abschnitt
+"Aufnahme und Anzeigebreite"). Logos und andere Bilder, die keine Aufnahme sind, werden
+uebersprungen. Die ersten Bytes in eine temporaere Datei laden (`curl -sL -r 0-4095 -o "{tmp}"
+"{url}"`, `{tmp}` ist ein beliebiger Pfad im Temp-Verzeichnis des Systems) und mit dem Hilfsskript
+aus `SCREENSHOTS.md` auswerten (POSIX `${CLAUDE_PLUGIN_ROOT}/bin/run-server`, Windows das
+`python.exe` aus dem venv des Plugins, jeweils mit
+`${CLAUDE_PLUGIN_ROOT}/servers/wikijs-mcp-server/tools/screenshot_width.py "{tmp}"`). Gemeldet
+werden: ein Ausschnitt ohne `=Wx`, ein `=Wx`, das nicht zu Pixelbreite / 2 passt (auch `=Wx` gleich
+der Pixelbreite bei Dateien ab 800 px), und Dateien unter 800 px ohne Breitenangabe (vermutlich
+nicht mit DPR 2 aufgenommen). Der Skill nennt Seite, Bild und den vorgeschlagenen Wert und fragt,
+ob er die Breite setzen soll. Aeltere hochskalierte Bilder duerfen bewusst bei ihrer sichtbaren Breite bleiben.
+Konnte die Pruefung nicht laufen, blockiert das die Freigabe nicht, der Skill sagt es nur.
 
 Bei Fall 2 entfaellt die Pruefung. Offene Marker bleiben dann auf der oeffentlichen Seite
 stehen, das sagt der Skill dem User vorher in einem Satz und listet die offenen IDs. Spaeter
