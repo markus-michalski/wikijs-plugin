@@ -10,10 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing yet
+- Screenshot display-width helper `tools/screenshot_width.py` (stdlib only): reads the pixel width of PNG and WebP files, derives the display width (pixel width / 2 for DPR 2 captures), warns about files that do not look like DPR 2 captures and prints the finished markdown line (#27)
+- Width check for screenshots in the docs-wiki release gate (warning only)
 
 ### Changed
-- Nothing yet
+- docs-wiki screenshot rules: capture at viewport 1200 px and DPR 2, crop without rescaling; full screens stay without a width, cropped blocks get `=Wx` with W = pixel width / 2 (#27)
 
 ### Deprecated
 - Nothing yet

@@ -86,6 +86,38 @@ Nach dem Setzen der Marker zeigt der Skill dir diese Tabelle, eine Zeile je Mark
 Danach fragt der Skill nichts weiter ab. Die Seiten liegen als Draft im Wiki, du lieferst die URLs,
 wenn die Bilder da sind.
 
+## Aufnahme und Anzeigebreite
+
+Damit die Schrift im Bild so gross wirkt wie im Fliesstext, haengt die Anzeigebreite nicht von
+einer Zielbreite ab, sondern von der Aufnahme:
+
+1. Browser-DevTools, Geraetemodus: Viewport **1200 px**, Device Pixel Ratio (**DPR**) **2**,
+   Seite neu laden
+2. Mit dem Screenshot-Button der DevTools den sichtbaren Bereich aufnehmen (ca. 2400 px breit). Der
+   Element-Screenshot der DevTools und Werkzeuge wie das Snipping-Tool ignorieren DPR 2 und liefern
+   Bilder in 1-facher Aufloesung
+3. Auf den gewuenschten Ausschnitt zuschneiden, **ohne zu skalieren** (kein "Groesse aendern", keine
+   automatische Verkleinerung beim Speichern). Hochskalieren auf eine einheitliche Breite ist der
+   haeufigste Fehler: Die Schrift wird doppelt so gross und unscharf
+4. Als WebP auf das CDN laden und die URL liefern
+
+**Anzeigebreite = Pixelbreite / 2.** Ein Zahlart-Block mit 1075 px wird `=537x`, ein ganzer Screen
+mit 2400 px bekommt keine Angabe (oder `=1200x`).
+
+Das Hilfsskript `servers/wikijs-mcp-server/tools/screenshot_width.py` liest die Pixelbreite aus
+PNG- und WebP-Dateien, nennt die passende Breite und warnt bei Dateien unter 800 px ohne
+Breitenangabe (vermutlich nicht mit DPR 2 aufgenommen). Mit `--url` und `--alt` gibt es die fertige Markdown-Zeile aus. Es laedt
+nichts hoch und signiert nichts:
+
+Der Aufruf nutzt das venv des Plugins (`<SCRIPT>` steht fuer
+`${CLAUDE_PLUGIN_ROOT}/servers/wikijs-mcp-server/tools/screenshot_width.py`):
+
+- POSIX: `${CLAUDE_PLUGIN_ROOT}/bin/run-server <SCRIPT> block.png --url "{cdn-url}" --alt "{alt-text}"`
+- Windows: `& "$env:USERPROFILE\.wikijs-plugin\venv\Scripts\python.exe" <SCRIPT> block.png --url "{cdn-url}" --alt "{alt-text}"`
+
+Der Upload auf das CDN bleibt Sache des Users. Der Skill liest die Pixelbreite bei geliefertem Bild
+selbst aus (siehe "Breitenpruefung" im Freigabe-Gate in `DOCS_COMMON.md`).
+
 ## Marker durch Bilder ersetzen
 
 Lieferst du die URLs, ordnet der Skill sie ueber die ID zu: Der Dateiname im Pfad der URL (letztes
@@ -98,10 +130,16 @@ Dateiname zu einer ID oder ist er in der URL nicht erkennbar, fragt der Skill na
 
 - Die URL wird unveraendert uebernommen, inklusive Signatur
 - Alt-Text = die Beschreibung aus dem Marker
-- Keine Breitenangabe fuer Seiten-Screenshots: Wiki.js zeigt sie in voller Spaltenbreite. Ein
-  Zusatz wie `=600x` verkleinert 1200 px breite Admin-Screenshots auf die Haelfte, die UI-Schrift
-  ist dann unleserlich (schmale Streifen wie Hinweisboxen am schlimmsten). Eine Breite nur bei
-  Bildern setzen, die von sich aus klein sind (schmale Dialoge, Logos), z. B. `=300x`
+- Breitenangabe nach der Bildart (Regeln unter "Aufnahme und Anzeigebreite"):
+  - **Ganze Screens** (ca. 2400 px breit): keine Breitenangabe. Wiki.js zeigt sie in voller
+    Spaltenbreite. Ein pauschales `=600x` wuerde sie auf die Haelfte verkleinern, die UI-Schrift
+    waere unleserlich
+  - **Ausschnitte** (ein Zahlart-Block, eine Hinweisbox, ein Formularfeld): immer `=Wx` mit
+    W = Pixelbreite / 2. Ohne Angabe wuerde ein schmaler Ausschnitt auf die ganze Spaltenbreite
+    gezogen, die Schrift im Bild waere doppelt so gross wie im Fliesstext
+  - Kleine Dialoge folgen derselben Regel (W = Pixelbreite / 2). Logos und andere Bilder, die
+    nicht aus einer Aufnahme stammen, bekommen eine kleine Festbreite, z. B. `=200x`, und werden
+    von der Breitenpruefung ausgenommen
 - Der Austausch ist ein inhaltliches Update der Draft-Seite (`wikijs_get_page`, ganzen Content
   anpassen, `wikijs_update_page` mit `isPublished: false`)
 - Eine geloeste ID verschwindet aus der Vorschlagsliste, die offene Rest-Liste zeigt der Skill

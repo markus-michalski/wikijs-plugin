@@ -170,7 +170,9 @@ neuen Sitzung):
    noch ein Marker `Screenshot folgt [` / `Screenshot pending [` steht (z. B. nach einer Freigabe
    mit offenen Screenshots). Die Volltextsuche ist dafür nicht verlässlich
 2. Die URLs über die ID den Markern zuordnen (`SCREENSHOTS.md`) und die Seite mit den Bildern
-   aktualisieren (Draft bleibt `isPublished: false`, live Seiten bleiben live)
+   aktualisieren (Draft bleibt `isPublished: false`, live Seiten bleiben live). Die Breitenangabe
+   (`=Wx`) ergibt sich aus der Pixelbreite der Datei (Regel in `SCREENSHOTS.md`, Abschnitt
+   "Aufnahme und Anzeigebreite")
 3. Bei einem Draft das Gate durchlaufen. Dazu braucht es keinen neuen Lauf über Schritt 1 bis 5
 
 Der `sourceRef` für das Veröffentlichen kommt aus `wikijs_get_page_history` (Eintrag, mit dem der
