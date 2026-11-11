@@ -10,11 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Screenshot display-width helper `tools/screenshot_width.py` (stdlib only): reads the pixel width of PNG and WebP files, derives the display width (pixel width / 2 for DPR 2 captures), warns about files that do not look like DPR 2 captures and prints the finished markdown line (#27)
-- Width check for screenshots in the docs-wiki release gate (warning only)
+- Nothing yet
 
 ### Changed
-- docs-wiki screenshot rules: capture at viewport 1200 px and DPR 2, crop without rescaling; full screens stay without a width, cropped blocks get `=Wx` with W = pixel width / 2 (#27)
+- Nothing yet
 
 ### Deprecated
 - Nothing yet
@@ -27,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 - Nothing yet
+
+## [1.5.2] - 2026-11-11
+
+### Added
+- add DPR 2 screenshot rule with display width for cropped images (#28)
 
 ## [1.5.1] - 2026-11-06
 
@@ -99,7 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [1.0.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.0.0
 [1.1.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.1.0
-[Unreleased]: https://github.com/markus-michalski/wikijs-plugin/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/markus-michalski/wikijs-plugin/compare/v1.5.2...HEAD
 [1.2.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.0
 [1.2.1]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.1
 [1.2.2]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.2
@@ -107,3 +111,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [1.4.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.4.0
 [1.5.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.5.0
 [1.5.1]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.5.1
+[1.5.2]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.5.2
