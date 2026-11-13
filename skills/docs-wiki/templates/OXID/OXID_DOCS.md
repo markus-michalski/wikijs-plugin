@@ -59,10 +59,10 @@ Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentati
 - Tabelle: Anforderung | Version | Hinweise
 - OXID 7.x, PHP 8.2+, Composer
 
-### 6. Installation {.tabset}
+### 6. Installation
 
-#### Via Composer (Empfohlen)
-
+:::block-tabs
+::block-tab{label="Via Composer (Empfohlen)"}
 Fuer private Repositories ueber Packeton:
 
 ```markdown
@@ -73,15 +73,17 @@ Fuer private Repositories ueber Packeton:
 ```bash
 composer require mmd/{modulename}
 ```
+::
 
-#### Manuell (Git Clone)
-
+::block-tab{label="Manuell (Git Clone)"}
 Danach IMMER:
 ```bash
 vendor/bin/oe-console oe:module:install-configuration source/modules/mmd/{modulename}
 vendor/bin/oe-console oe:module:activate mmd_{modulename}
 vendor/bin/oe-console oe:cache:clear
 ```
+::
+:::
 
 ### 7. Update
 - Composer update + Cache clear
@@ -132,6 +134,7 @@ vendor/bin/oe-console oe:cache:clear
 Module-Chain / Event-Flow:
 
 ````markdown
+::block-diagram
 ```mermaid
 graph TD
     A["OXID Core Class"] --> B["Module Extension"]
@@ -141,11 +144,13 @@ graph TD
     E --> F["Process"]
     F --> D
 ```
+::
 ````
 
 Fuer Module mit Console Commands:
 
 ````markdown
+::block-diagram
 ```mermaid
 graph LR
     A["CLI Command"] --> B["Service"]
@@ -153,6 +158,7 @@ graph LR
     C --> D["Database"]
     D --> E["Output/File"]
 ```
+::
 ````
 
 ## Agent-Einsatz fuer OXID 7

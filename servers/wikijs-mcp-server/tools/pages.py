@@ -13,14 +13,13 @@ from .validation import (
     MAX_PAGE_LIMIT,
     validate_content,
     validate_description,
+    validate_editor,
     validate_locale,
     validate_page_id,
     validate_path,
     validate_tags,
     validate_title,
 )
-
-_VALID_EDITORS = ("markdown", "code", "ckeditor")
 
 
 def _log_history_safely(
@@ -48,7 +47,7 @@ def _log_history_safely(
 def _log_update_history_safely(
     client: WikiJsClient,
     *,
-    resolved_id: int,
+    resolved_id: str,
     path: str | None,
     locale: str,
     current_page: dict[str, Any] | None,
@@ -91,7 +90,6 @@ def create_page(
     locale: str = "en",
     editor: str = "markdown",
     is_published: bool = True,
-    is_private: bool = False,
     tags: list[str] | None = None,
     source_repo: str = "",
     source_ref: str = "",
@@ -102,8 +100,7 @@ def create_page(
     content = validate_content(content)
     description = validate_description(description)
     locale = validate_locale(locale)
-    if editor not in _VALID_EDITORS:
-        raise ValueError(f"editor must be one of {_VALID_EDITORS}")
+    editor = validate_editor(editor)
     tags = validate_tags(tags or [])
 
     page = client.create_page(
@@ -114,7 +111,6 @@ def create_page(
         locale=locale,
         editor=editor,
         is_published=is_published,
-        is_private=is_private,
         tags=tags,
     )
 
@@ -127,7 +123,7 @@ def create_page(
 
 
 def get_page(
-    client: WikiJsClient, *, page_id: int | None = None, path: str | None = None, locale: str = "en"
+    client: WikiJsClient, *, page_id: str | None = None, path: str | None = None, locale: str = "en"
 ) -> dict[str, Any]:
     locale = validate_locale(locale)
     if page_id is not None:
@@ -252,7 +248,7 @@ def _guard_against_content_shrink(*, new_content: str, old_content: str, confirm
 def update_page(
     client: WikiJsClient,
     *,
-    page_id: int | None = None,
+    page_id: str | None = None,
     path: str | None = None,
     locale: str = "en",
     content: str | None = None,
@@ -293,19 +289,14 @@ def update_page(
     if resolved_id is None:
         raise ValueError("Could not resolve page ID")
 
-    # Wiki.js requires string values for title/description/content — auto-fetch
-    # whatever wasn't explicitly provided so a metadata-only update doesn't
-    # blank them. Unconditional (not just "if something's missing") because
-    # _guard_against_content_shrink below always needs the real old content
-    # to compare against, even when content/title/description are all given.
-    if current_page is None:
-        current_page = client.get_page_by_id(resolved_id)
-        if not current_page:
-            raise ValueError(f"Page not found with ID: {resolved_id}")
-
-    # current_page is guaranteed non-None past this point — both resolution
-    # branches above raise if the fetch comes back falsy.
+    # Wiki.js 3 updates are partial (PATCH): only the fields passed are sent and
+    # changed, so title/description/tags need no fetch-and-resend. The current
+    # page is only needed to guard against an accidental content overwrite.
     if content is not None:
+        if current_page is None:
+            current_page = client.get_page_by_id(resolved_id)
+            if not current_page:
+                raise ValueError(f"Page not found with ID: {resolved_id}")
         _guard_against_content_shrink(
             new_content=content,
             # "" (not missing) if the API response ever omits the field —
@@ -315,23 +306,13 @@ def update_page(
             confirmed=confirm_content_shrink,
         )
 
-    content_to_use = content if content is not None else current_page.get("content")
-    title_to_use = title if title is not None else current_page.get("title")
-    description_to_use = description if description is not None else current_page.get("description")
-
-    tags_to_use = tags
-    if tags_to_use is None:
-        pages = client.get_all_pages()
-        found = next((p for p in pages if p["id"] == resolved_id), None)
-        tags_to_use = (found or {}).get("tags") or []
-
     result = client.update_page(
         page_id=resolved_id,
-        content=content_to_use,
-        title=title_to_use,
-        description=description_to_use,
+        content=content,
+        title=title,
+        description=description,
         is_published=is_published,
-        tags=tags_to_use,
+        tags=tags,
     )
 
     _log_update_history_safely(
@@ -420,7 +401,7 @@ def get_verified_refs(*, path: str | None = None, locale: str | None = None) -> 
 
 
 def delete_page(
-    client: WikiJsClient, *, page_id: int | None = None, path: str | None = None, locale: str = "en"
+    client: WikiJsClient, *, page_id: str | None = None, path: str | None = None, locale: str = "en"
 ) -> dict[str, Any]:
     locale = validate_locale(locale)
     if page_id is not None:
@@ -443,7 +424,7 @@ def delete_page(
 def move_page(
     client: WikiJsClient,
     *,
-    page_id: int | None = None,
+    page_id: str | None = None,
     path: str | None = None,
     locale: str = "en",
     destination_path: str,

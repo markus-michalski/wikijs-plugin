@@ -118,9 +118,16 @@ Use `<PY>` (still the Step 0 interpreter — this step doesn't need the venv):
 
 Then tell the user: "Die `.env`-Vorlage wurde nach `~/.wikijs-plugin/.env`
 kopiert. Trage dort deine Wiki.js-Zugangsdaten ein:
-- `WIKIJS_API_URL` — GraphQL-Endpunkt deiner Wiki.js-Instanz (endet auf `/graphql`)
-- `WIKIJS_API_TOKEN` — API-Token aus dem Wiki.js Admin-Panel (Admin -> API Access),
-  Berechtigungen: `read:pages`, `write:pages`, `manage:pages`"
+- `WIKIJS_API_URL` — Basis-URL deiner Wiki.js-3-Instanz (z.B. `https://wiki.example.com`,
+  ohne `/graphql`). Die Site-ID wird automatisch aus dem Hostnamen ermittelt;
+  `WIKIJS_SITE_ID` nur setzen, wenn das scheitert
+- `WIKIJS_API_TOKEN` — Personal Access Token mit dem Scope `pages` (Wiki.js: Profil ->
+  API-Token). Er handelt als der User, der ihn erstellt hat; dieser User braucht
+  Lese-, Schreib- und Verwaltungsrechte auf den Seiten. Ein System-API-Key reicht fuer
+  Schreibzugriffe nicht
+
+Zeigt eine bestehende `.env` noch auf eine `/graphql`-URL, stammt sie aus Plugin 1.x
+(Wiki.js 2) und muss auf die Basis-URL umgestellt werden; der Server meldet das beim Start."
 
 ### Step 6: Verify MCP Server
 

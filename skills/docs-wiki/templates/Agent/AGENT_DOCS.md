@@ -89,19 +89,23 @@ Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentati
 ### 9. Beispiel-Workflows (mindestens 2)
 
 ```markdown
-### Beispiele {.tabset}
+### Beispiele
 
-#### Einfacher Workflow
+:::block-tabs
+::block-tab{label="Einfacher Workflow"}
 1. User: "/skill-name"
 2. Skill fragt: ...
 3. Skill laed Template
 4. Ergebnis
+::
 
-#### Erweiterter Workflow
+::block-tab{label="Erweiterter Workflow"}
 1. User: "/skill-name TypeA projekt-name details"
 2. Skill parsed Input
 3. Ueberspringt Fragen
 4. Ergebnis
+::
+:::
 ```
 
 ### 10. Integration mit anderen Tools
@@ -131,6 +135,7 @@ Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentati
 Agent-Orchestrierung:
 
 ````markdown
+::block-diagram
 ```mermaid
 graph TD
     A["User Trigger"] --> B["Detect Context"]
@@ -143,11 +148,13 @@ graph TD
     G --> H["Agent 3: Review"]
     H --> I["Publish to Wiki.js"]
 ```
+::
 ````
 
 Skill-Workflow:
 
 ````markdown
+::block-diagram
 ```mermaid
 sequenceDiagram
     participant U as User
@@ -167,6 +174,7 @@ sequenceDiagram
     S->>W: wikijs_create_page (EN)
     S->>U: Fertig! Links zu DE + EN
 ```
+::
 ````
 
 ## Agent-Einsatz fuer Agent/Skill-Dokumentation

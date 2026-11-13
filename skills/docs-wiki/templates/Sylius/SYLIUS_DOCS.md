@@ -99,10 +99,10 @@ Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentati
   tatsaechlich einschraenkt, nicht pauschal uebernehmen
 - Secret-/Verschluesselungs-Voraussetzung falls vorhanden (z.B. "nicht-leerer `APP_SECRET`")
 
-### 6. Installation {.tabset}
+### 6. Installation
 
-#### Composer (Packeton, falls privat)
-
+:::block-tabs
+::block-tab{label="Composer (Packeton, falls privat)"}
 ```markdown
 > **Hinweis:** Private Repositories werden ueber Packeton verwaltet (`https://packeton.markus-michalski.net`). Zugangsdaten nach Lizenzkauf/Freigabe.
 {.is-info}
@@ -115,9 +115,9 @@ Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentati
 ```bash
 composer require mmd/{plugin-name}
 ```
+::
 
-#### Composer (Packagist, falls Open Source)
-
+::block-tab{label="Composer (Packagist, falls Open Source)"}
 ```bash
 composer require mmd/{plugin-name}
 ```
@@ -157,6 +157,8 @@ Nach dem `composer require` (beide Tabs, IMMER in dieser Reihenfolge):
    ```bash
    bin/console assets:install
    ```
+::
+:::
 
 ### 7. Update
 - `composer update mmd/{plugin-name}`
@@ -252,6 +254,7 @@ einzeln, neueste zuerst) -> Routen-Imports und Bundle-Eintrag entfernen -> `comp
 Enforcement-/Entscheidungs-Flow (wenn das Plugin Requests/Submissions prueft/filtert):
 
 ````markdown
+::block-diagram
 ```mermaid
 graph TD
     A["Request / Submission"] --> B{"Channel aktiviert?"}
@@ -261,11 +264,13 @@ graph TD
     E -->|Yes| F["422 / Form-Error"]
     E -->|No| G["Weiterverarbeitung"]
 ```
+::
 ````
 
 Dual-Mode Storefront + Shop API (immer sinnvoll, da Sylius-Plugins dual-mode sind):
 
 ````markdown
+::block-diagram
 ```mermaid
 graph LR
     A["Storefront Twig Hook"] --> C["Plugin Service"]
@@ -275,6 +280,7 @@ graph LR
     E --> F["Twig Render"]
     E --> G["JSON Response"]
 ```
+::
 ````
 
 Bei eigenen Entities zusaetzlich ein ER-Diagramm, falls mehr als zwei Tabellen beteiligt sind.

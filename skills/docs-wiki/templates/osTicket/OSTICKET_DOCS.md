@@ -62,13 +62,19 @@ Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentati
 - IMMER als Tabelle: Anforderung | Version | Hinweise
 - Optionale Abhaengigkeiten separat
 
-### 7. Installation {.tabset}
+### 7. Installation
 
-#### ZIP Download (Empfohlen)
-#### Git Clone
-#### Composer (falls verfuegbar)
+:::block-tabs
+::block-tab{label="ZIP Download (Empfohlen)"}
+::
 
+::block-tab{label="Git Clone"}
+::
+
+::block-tab{label="Composer (falls verfuegbar)"}
 Danach: Plugin aktivieren (Admin Panel → Verwalten → Plugins)
+::
+:::
 
 ### 8. Konfiguration
 - Settings als Tabelle: Einstellung | Beschreibung | Standard | Wann nutzen
@@ -129,6 +135,7 @@ Danach: Plugin aktivieren (Admin Panel → Verwalten → Plugins)
 Signal-Flow-Diagramm fuer osTicket Plugins:
 
 ````markdown
+::block-diagram
 ```mermaid
 graph TD
     A["osTicket Core Event"] --> B{"Plugin Active?"}
@@ -138,11 +145,13 @@ graph TD
     E --> F["Modified Response"]
     F --> G["osTicket Continues"]
 ```
+::
 ````
 
 Fuer Plugins mit API:
 
 ````markdown
+::block-diagram
 ```mermaid
 sequenceDiagram
     participant C as Client
@@ -158,6 +167,7 @@ sequenceDiagram
     P-->>A: Ticket Created
     A-->>C: 201 JSON Response
 ```
+::
 ````
 
 ## Agent-Einsatz fuer osTicket

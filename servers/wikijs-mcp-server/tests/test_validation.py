@@ -7,6 +7,7 @@ from tools.validation import (
     MAX_TAG_LENGTH,
     MAX_TAGS_PER_PAGE,
     validate_content,
+    validate_editor,
     validate_locale,
     validate_page_id,
     validate_path,
@@ -79,10 +80,29 @@ class TestValidateContent:
 
 
 class TestValidatePageId:
-    def test_accepts_positive_int(self):
-        assert validate_page_id(42) == 42
+    @pytest.mark.parametrize(
+        "value",
+        ["309a0d75-e06d-4ab3-a8cf-9dae8f27c85a", "1867eaf483ceab"],
+    )
+    def test_accepts_uuid_and_path_hash(self, value):
+        assert validate_page_id(value) == value
 
-    @pytest.mark.parametrize("value", [0, -1, -100])
-    def test_rejects_non_positive(self, value):
+    @pytest.mark.parametrize(
+        "value",
+        ["", "42", "../etc", "a/b", "309a0d75 e06d", "x" * 65, "ZZZ-not-hex", 42, None,
+         "309a0d75-e06d-4ab3-a8cf-9dae8f27c85a\n", "1867eaf483ceab\n"],
+    )
+    def test_rejects_everything_else(self, value):
         with pytest.raises(ValueError):
             validate_page_id(value)
+
+
+class TestValidateEditor:
+    @pytest.mark.parametrize("editor", ["markdown", "visual", "code", "redirect"])
+    def test_accepts_editor_ids(self, editor):
+        assert validate_editor(editor) == editor
+
+    @pytest.mark.parametrize("editor", ["", "Markdown", "a b", "x" * 65, "../x", "markdown\n"])
+    def test_rejects_malformed(self, editor):
+        with pytest.raises(ValueError):
+            validate_editor(editor)

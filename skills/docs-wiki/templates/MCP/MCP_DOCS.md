@@ -60,18 +60,22 @@ Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentati
 - Tabelle: Anforderung | Version | Hinweise
 - Node.js 18+, npm/pnpm, Claude Desktop/CLI, externer Service
 
-### 7. Installation {.tabset}
+### 7. Installation
 
-#### npm Global (Empfohlen)
+:::block-tabs
+::block-tab{label="npm Global (Empfohlen)"}
 ```bash
 npm install -g @markus-michalski/{server-name}
 ```
+::
 
-#### Git Clone
+::block-tab{label="Git Clone"}
 ```bash
 git clone ...
 npm install && npm run build
 ```
+::
+:::
 
 ### 8. Konfiguration
 
@@ -159,6 +163,7 @@ npm install && npm run build
 Client → MCP Server → External API:
 
 ````markdown
+::block-diagram
 ```mermaid
 sequenceDiagram
     participant U as User/Claude
@@ -172,11 +177,13 @@ sequenceDiagram
     M->>M: Transform Data
     M-->>U: Formatted Result
 ```
+::
 ````
 
 Fuer Server mit mehreren Services:
 
 ````markdown
+::block-diagram
 ```mermaid
 graph TD
     A["Claude"] --> B["MCP Server"]
@@ -188,6 +195,7 @@ graph TD
     E --> G
     F --> G
 ```
+::
 ````
 
 ## Agent-Einsatz fuer MCP Server
