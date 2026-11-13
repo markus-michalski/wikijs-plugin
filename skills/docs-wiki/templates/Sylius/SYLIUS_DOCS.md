@@ -26,10 +26,7 @@ von github.com) ist fuer Anonyme kaputt.
 ### Oeffentliches Repo
 
 ```markdown
-[![GitHub](https://img.shields.io/badge/GitHub-{REPO_NAME}-blue?logo=github)](https://github.com/markus-michalski/{REPO_NAME})
-[![License](https://img.shields.io/badge/license-{LIZENZ}-blue.svg)](https://github.com/markus-michalski/{REPO_NAME}/blob/main/LICENSE)
-[![Sylius](https://img.shields.io/badge/Sylius-2.x-FEA827.svg?logo=sylius)](https://sylius.com)
-[![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg?logo=php)](https://www.php.net/)
+[![GitHub](https://img.shields.io/badge/GitHub-{REPO_NAME}-blue?logo=github)](https://github.com/markus-michalski/{REPO_NAME}) [![License](https://img.shields.io/badge/license-{LIZENZ}-blue.svg)](https://github.com/markus-michalski/{REPO_NAME}/blob/main/LICENSE) [![Sylius](https://img.shields.io/badge/Sylius-2.x-FEA827.svg?logo=sylius)](https://sylius.com) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg?logo=php)](https://www.php.net/)
 ```
 
 CI-Badge nur ergaenzen, wenn `.github/workflows/ci.yml` im Repo tatsaechlich existiert:
@@ -47,8 +44,7 @@ Composer + Packeton. Keine GitHub-, CI- oder verlinkten License-Badges. Die Lize
 ohne Link erscheinen, wenn sie fuer Leser relevant ist:
 
 ```markdown
-[![Sylius](https://img.shields.io/badge/Sylius-2.x-FEA827.svg?logo=sylius)](https://sylius.com)
-[![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg?logo=php)](https://www.php.net/)
+[![Sylius](https://img.shields.io/badge/Sylius-2.x-FEA827.svg?logo=sylius)](https://sylius.com) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg?logo=php)](https://www.php.net/)
 ![License](https://img.shields.io/badge/license-{LIZENZ}-blue.svg)
 ```
 
@@ -75,7 +71,7 @@ innerhalb ihrer Seite. Eine Unterseite wird nur angelegt, wenn es dazu Inhalt gi
 Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentations-Tabelle auf dem Hub ersetzt.
 
 
-### 1. Titel + Badges + Sprachlink
+### 1. Titel + Badges (in einer Zeile)
 
 ### 2. Inhaltsverzeichnis (manuell)
 

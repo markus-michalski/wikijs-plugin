@@ -8,9 +8,10 @@ Jede Wiki.js-Seite wird in **DE und EN** erstellt/aktualisiert.
 
 - Gleicher Pfad, unterschiedliche Locale (`locale: "de-DE"` / `locale: "en"`). Wiki.js 3 kennt
   `de-DE` und `en`, ein nacktes `"de"` gibt es nicht mehr
-- Sprachlink oben auf jeder Seite (Englisch ohne Locale-Praefix, Deutsch mit `/de-DE/`):
-  - DE-Seite: `[English Version](https://faq.markus-michalski.net/{path})`
-  - EN-Seite: `[Deutsche Version](https://faq.markus-michalski.net/de-DE/{path})`
+- **Kein Sprachlink im Seiteninhalt.** Den Wechsel zwischen DE und EN uebernimmt der globale
+  Sprachumschalter des Themes (Link neben "Edit" in der Aktionsleiste). Er baut den Link aus dem
+  Pfad, deshalb haben beide Sprachen **denselben Pfad** (Englisch ohne Locale-Praefix, Deutsch unter
+  `/de-DE/`). Keine Zeilen wie `[English Version](...)` oder `[Deutsche Version](...)` schreiben
 - Code-Beispiele, CLI-Befehle, technische Terme bleiben in beiden Versionen gleich (welche
   Begriffe Lehnwörter bleiben, steht im Glossar von `translation-check`)
 - Nur Fliesstext, Ueberschriften, Beschreibungen uebersetzen
@@ -18,8 +19,8 @@ Jede Wiki.js-Seite wird in **DE und EN** erstellt/aktualisiert.
   Sprachumschalter die jeweils andere Sprache anbietet. Die EN-Seite wird nach der DE-Seite
   angelegt und bekommt `localeRelations: [{locale: "de-DE", path}]` (die Verknuepfung gilt in
   beide Richtungen, die Gegenseite muss schon existieren). Bei einem Update einer unverknuepften
-  Bestandsseite per `wikijs_update_page(..., localeRelations: [...])` nachziehen. Die manuellen
-  Sprachlinks oben auf der Seite bleiben vorerst zusaetzlich bestehen
+  Bestandsseite per `wikijs_update_page(..., localeRelations: [...])` nachziehen. Der Umschalter im
+  Theme braucht die Verknuepfung nicht, sie haelt die beiden Seiten fuer Wiki.js selbst zusammen
 
 ## Wiki.js Enhanced Markdown - PFLICHT
 
@@ -41,9 +42,33 @@ Nutze diese Wiki.js-spezifischen Markdown-Features aktiv:
 {.is-success}
 ```
 
-Zeilenumbrueche im Quelltext (Callouts, Absaetze, Listen) werden in Wiki.js 3 wie in CommonMark
-zu Fliesstext zusammengefasst, es entsteht kein hartes `<br>` mehr. Die Wiki.js-2-Regel
-"Callout immer in einer einzigen Zeile" und das manuelle `<br>` fuer Umbrueche entfallen.
+**KRITISCH - Callout Boxes NIE im Quelltext umbrechen:**
+
+Wiki.js (auch Version 3, an dieser Instanz geprueft) fasst mehrzeilige Bloecke NICHT wie
+Standard-CommonMark zu Fliesstext zusammen — jeder einzelne Zeilenumbruch im Quelltext wird als
+hartes `<br>` gerendert. Ein Callout muss daher **immer eine einzige, unumbrochene Zeile** sein,
+unabhaengig von der Laenge:
+
+```markdown
+> Wichtiger Hinweis: Diese lange Warnung wurde bei ca. 90 Zeichen        <-- FALSCH
+> umgebrochen, um im Editor besser lesbar zu sein, und rendert in
+> Wiki.js mit sichtbaren Zeilenumbruechen mitten im Satz.
+{.is-warning}
+
+> Wichtiger Hinweis: Diese lange Warnung steht als eine einzige, unumbrochene Zeile im Quelltext und rendert in Wiki.js als normaler Fliesstext ohne sichtbare Umbrueche.   <-- KORREKT
+{.is-warning}
+```
+
+Dasselbe gilt fuer Absaetze: nur umbrechen, wo ein Umbruch gewollt ist.
+
+### Badges in einer Zeile
+
+Badges (`[![...](...)](...)`) stehen in **einer** Zeile, durch Leerzeichen getrennt. Auf mehrere
+Quelltext-Zeilen verteilt, wuerde jede Badge wegen des harten `<br>` in einer eigenen Zeile landen:
+
+```markdown
+[![OXID](https://img.shields.io/badge/OXID-7.x-green.svg)](https://www.oxid-esales.com) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg?logo=php)](https://www.php.net/)
+```
 
 ### Content Tabs (fuer alternative Wege)
 
@@ -128,7 +153,7 @@ Wiki.js-Seiten beschreiben immer nur den **aktuellen Stand** des Plugins/Moduls,
 - Versionsgeschichte gehoert ins CHANGELOG.md des Repos, nicht ins Wiki. Es gibt im Wiki auch
   **keinen Changelog-Abschnitt** und keinen Link darauf (sonst wird er doppelt gepflegt, und bei
   privaten Repos laeuft der Link ins Leere)
-- Stattdessen: direkt unter dem Sprachlink/den Badges am Seitenanfang ein Hinweis-Callout, dass
+- Stattdessen: direkt unter den Badges am Seitenanfang ein Hinweis-Callout, dass
   sich die Doku immer auf die aktuellste Version bezieht
 - Diese Regel gilt auch dann, wenn der User selbst eine Versionsnummer nennt und erwartet, dass sie
   dokumentiert wird — die Versionsnummer nicht in Ueberschrift/Fliesstext uebernehmen (das
@@ -170,7 +195,7 @@ Update/Qualitaets-Upgrade (siehe "Bestehende Einzelseite umbauen").
 
 ### Hub-Inhalt (in dieser Reihenfolge)
 
-1. Sprachlink, Link zur Kategorie-Seite, H1, Badges, "aktuelle Version"-Callout
+1. H1, Badges, "aktuelle Version"-Callout
 2. Ueberblick (was, fuer wen, Kern-Vorteil als Callout)
 3. Ein Mermaid-Uebersichtsdiagramm
 4. **Dokumentation**: Tabelle `Seite | Inhalt` mit Links auf alle Unterseiten (ersetzt das
@@ -196,18 +221,12 @@ inhaltlich benannte Unterseiten (z.B. `plugins/storyforge/writing-modes`) behalt
 
 ### Konventionen fuer jede Unterseite
 
-- Kopf: Sprachlink, Leerzeile, Link zurueck zum Hub, Leerzeile, H1
+- Kopf: direkt die H1, kein Rueck-Link und kein Sprachlink (Brotkrumen und Sprachumschalter des
+  Themes uebernehmen das)
 
   ```markdown
-  [English Version](https://faq.markus-michalski.net/{path})
-
-  [Zurueck zur Uebersicht](/de-DE/{hub-pfad})
-
   # {Projekt}: {Thema}
   ```
-
-  EN: `[Deutsche Version](https://faq.markus-michalski.net/de-DE/{path})` und
-  `[Back to overview](/{hub-pfad})`
 - Titel: `{Projekt}: {Thema}` (z.B. "ALTCHA: Konfiguration")
 - Eigene Description (max 250 Zeichen), die zum Thema der Unterseite passt, nicht die Hub-Description
 - Tags wie beim Hub
@@ -219,25 +238,23 @@ inhaltlich benannte Unterseiten (z.B. `plugins/storyforge/writing-modes`) behalt
 - Callouts, Tabs, Troubleshooting-Pattern und alle anderen Regeln dieser Datei gelten
   unveraendert pro Seite
 
-### Link zur Elternseite - PFLICHT
+### Navigation nach oben: Brotkrumen - PFLICHT-VORAUSSETZUNG
 
-Jede Seite verlinkt auf ihre Elternseite, damit Leser nie in einer Sackgasse landen und zwischen
-Kategorien wechseln koennen:
+Den Weg zurueck (Unterseite → Hub → Kategorie → Home) zeigen die **Brotkrumen des Themes**, sie
+werden aus dem Seitenpfad gebaut. Deshalb steht **kein manueller Rueck-Link** (`[Back to overview]`,
+`[Zurueck zur Uebersicht]`, `[Alle OXID 7 Plugins]`, `[← Zur Hauptuebersicht]`) mehr im
+Seiteninhalt. Eine Zeile, die auf eine uebergeordnete Seite zeigt, wird nicht geschrieben.
 
-| Seite | Link fuehrt zu | Beispiel |
-|-------|----------------|----------|
-| Unterseite | Hub | `[Zurueck zur Uebersicht](/de-DE/oxid7/sitemap)` |
-| Hub | Kategorie-Seite | `[Alle OXID 7 Plugins](/de-DE/oxid7)` |
-| Kategorie-Seite | Home | `[← Zur Hauptuebersicht](/de-DE/home)` |
+Damit die Brotkrumen funktionieren, muss die **Pfad-Hierarchie vollstaendig** sein: jede Ebene
+eines Pfads existiert als Seite, in beiden Sprachen. Fuer `oxid7/altcha-integration/api` heisst
+das, dass `oxid7` (Kategorie-Seite) und `oxid7/altcha-integration` (Hub) vorhanden sind. Beim
+Anlegen eines neuen Projekts also pruefen, ob die Kategorie-Seite existiert, und sie sonst
+mit anlegen.
 
-- Der Link steht direkt unter dem Sprachlink (Markdown) bzw. im Hero-Bereich unter dem Untertitel
-  (HTML-Kategorie-Seiten, helle Linkfarbe wegen dunklem Hintergrund)
-- Absoluter Wiki-Pfad, wie bei allen Links (`/de-DE/...`, Englisch ohne Praefix)
-- EN-Pendants: `Back to overview`, `All OXID 7 Plugins`, `Back to main overview`
-- Fehlt die direkte Elternseite (z.B. keine Kategorie-Seite), gilt die naechsthoehere vorhandene
-  Seite, sonst Home
-- Beim Anlegen einer neuen Seite wird der Link gleich mit gesetzt, bei Update oder Upgrade einer
-  Bestandsseite ohne Link wird er nachgezogen
+- Kategorie-Seiten im HTML-Hero-Layout behalten ihren Link zur Hauptuebersicht im Hero-Bereich
+  (helle Linkfarbe wegen dunklem Hintergrund), sie haben keine Brotkrumen-Zeile
+- Inhaltliche Links auf andere Seiten (Geschwister, "siehe auch") bleiben erlaubt, nur der
+  Link auf eine **uebergeordnete** Seite entfaellt
 
 ### Kategorie-Seite (Karten-Uebersicht)
 
@@ -586,10 +603,10 @@ Vor dem Erstellen/Updaten ALLE Punkte pruefen:
 - [ ] `/wikijs-plugin:translation-check` über DE- und EN-Content durchgelaufen (DE ist hartes Gate, EN höchstens WARN)
 - [ ] Translation-Check: PASS, oder WARN mit User-Entscheidung — bei FAIL nicht publizieren
 - [ ] Hub + Unterseiten statt Einzelseite; Hub ist eine kurze Startseite mit Dokumentations-Tabelle
-- [ ] Jede Unterseite hat Sprachlink, Link zurueck zum Hub, eigene Description und `{Projekt}: {Thema}`-Titel
+- [ ] Jede Unterseite hat eigene Description und `{Projekt}: {Thema}`-Titel
 - [ ] Beim Umbau: jeder Abschnitt der alten Seite steht auf genau einer neuen Seite (nichts verloren)
 - [ ] Kategorie-Karte verlinkt auf die Unterseiten
-- [ ] Jede Seite verlinkt auf ihre Elternseite (Unterseite → Hub, Hub → Kategorie, Kategorie → Home)
+- [ ] Kein manueller Rueck-Link auf eine uebergeordnete Seite, die Pfad-Hierarchie ist vollstaendig (Kategorie-Seite und Hub existieren)
 - [ ] Hub und `technical` haben je mindestens 1 Mermaid-Diagramm
 - [ ] Callout Boxes fuer Warnungen/Tipps (`.is-warning`, `.is-info`, `.is-danger`, `.is-success`)
 - [ ] Keine "(ab vX.Y.Z)"-Versionszusaetze im Fliesstext — stattdessen "aktuelle Version"-Hinweis am Seitenanfang
@@ -601,7 +618,9 @@ Vor dem Erstellen/Updaten ALLE Punkte pruefen:
 - [ ] Tags gesetzt (Projekttyp + Projektname + Themen-Tags)
 - [ ] Description ausgefuellt (max 250 Zeichen, beschreibend — siehe Sicherheitsmarge unten)
 - [ ] DE + EN Version vorhanden
-- [ ] Sprachlink oben auf beiden Versionen korrekt
+- [ ] Kein Sprachlink im Seiteninhalt, DE und EN haben denselben Pfad (Voraussetzung fuer den Theme-Umschalter)
+- [ ] Callout Boxes (`> ...`) stehen als eine einzige unumbrochene Zeile im Quelltext, nie manuell umgebrochen
+- [ ] Badges stehen in einer Zeile, durch Leerzeichen getrennt
 - [ ] Badges aktuell (Version, CI-Status, Lizenz)
 - [ ] `isPublished` bei jedem MCP-Aufruf explizit gesetzt: Neue Doku `false` (Draft), Update/Upgrade und Freigabe `true`
 - [ ] Neue Doku: Screenshot-Vorschlaege gemacht (Marker mit identischen IDs in DE und EN, ausser bei sprachabhaengigen Motiven mit `_de`/`_en`-Suffix, Vorschlagsliste gezeigt) oder bewusst keine, weil das Projekt keine sinnvollen Motive hat

@@ -10,10 +10,7 @@
 ## Badge-Vorlage
 
 ```markdown
-[![GitHub](https://img.shields.io/badge/GitHub-{REPO_NAME}-blue?logo=github)](https://github.com/markus-michalski/{REPO_NAME})
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/markus-michalski/{REPO_NAME}/blob/main/LICENSE)
-[![Bash](https://img.shields.io/badge/Bash-5.0%2B-4EAA25.svg?logo=gnubash)](https://www.gnu.org/software/bash/)
-[![ShellCheck](https://img.shields.io/badge/ShellCheck-passing-brightgreen.svg)](https://www.shellcheck.net/)
+[![GitHub](https://img.shields.io/badge/GitHub-{REPO_NAME}-blue?logo=github)](https://github.com/markus-michalski/{REPO_NAME}) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/markus-michalski/{REPO_NAME}/blob/main/LICENSE) [![Bash](https://img.shields.io/badge/Bash-5.0%2B-4EAA25.svg?logo=gnubash)](https://www.gnu.org/software/bash/) [![ShellCheck](https://img.shields.io/badge/ShellCheck-passing-brightgreen.svg)](https://www.shellcheck.net/)
 ```
 
 ## Seiten-Struktur (Sektionen in dieser Reihenfolge)
@@ -35,7 +32,7 @@ innerhalb ihrer Seite. Eine Unterseite wird nur angelegt, wenn es dazu Inhalt gi
 Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentations-Tabelle auf dem Hub ersetzt.
 
 
-### 1. Titel + Badges + Sprachlink
+### 1. Titel + Badges (in einer Zeile)
 
 ### 2. Inhaltsverzeichnis (manuell)
 

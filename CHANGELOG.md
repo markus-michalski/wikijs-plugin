@@ -29,14 +29,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for change on the Wiki.js version (255 characters at most), not only in the local DB.
 - `wikijs_delete_page` documents what actually happens: the page goes to the recycle bin and
   is restorable. The "irreversible" warning is gone from the tool text and the delete message.
+- `docs-wiki`: badges are written on one line, separated by spaces (separate source lines
+  render as separate lines because of the hard `<br>`).
 
 ### Deprecated
 - Nothing yet
 
 ### Removed
-- Nothing yet
+- `docs-wiki` no longer writes a manual language link (`[English Version](...)` /
+  `[Deutsche Version](...)`) into the page. The theme's global language switcher does that job,
+  which only needs both languages to share the same path. The lines were removed from the
+  existing pages as well.
+- `docs-wiki` no longer writes a manual link to the parent page (`[Back to overview]`,
+  `[All OXID 7 Plugins]`, ...). The theme's breadcrumbs, built from the page path, show that
+  way back; the rule now requires a complete path hierarchy (category page and hub exist). The
+  lines were removed from the existing pages as well, as was the old `[English version]` link on
+  the German `mcp/wikijs` pages.
 
 ### Fixed
+- `docs-wiki` rules said Wiki.js 3 no longer renders source line breaks as hard `<br>`. It still
+  does (checked with a freshly rendered page), so the 2.0.0 removal of the single-line callout
+  rule was wrong and the rule is back.
 - Content written through the REST API did not reach readers: Wiki.js serves the stored render,
   and a REST write leaves it stale (an updated page kept its old look, a new one is blank and
   invisible to search). `wikijs_create_page` and `wikijs_update_page` (with content) now queue a
