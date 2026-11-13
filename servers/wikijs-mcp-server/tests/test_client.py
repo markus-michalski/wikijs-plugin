@@ -344,6 +344,19 @@ class TestDeletePage:
         client, _ = make_client({self.route: httpx.Response(204)})
         assert client.delete_page(PAGE_ID) == {"ok": True}
 
+    def test_delete_sends_no_json_content_type(self):
+        """Wiki.js (Fastify) answers 400 "Body cannot be empty" to a bodyless
+        request that declares application/json — found in a live delete."""
+        client, rec = make_client({self.route: httpx.Response(204)})
+        client.delete_page(PAGE_ID)
+        assert "content-type" not in rec.calls(self.route)[0].headers
+
+    def test_requests_with_a_body_are_sent_as_json(self):
+        route = f"PATCH /_api/sites/{SITE_ID}/pages/{PAGE_ID}"
+        client, rec = make_client({route: {"ok": True, "page": {"id": PAGE_ID}}})
+        client.update_page(page_id=PAGE_ID, title="t")
+        assert rec.calls(route)[0].headers["content-type"] == "application/json"
+
     def test_delete_failure_raises(self):
         client, _ = make_client({self.route: httpx.Response(403, json={"message": "denied"})})
         with pytest.raises(WikiJsError, match="denied"):

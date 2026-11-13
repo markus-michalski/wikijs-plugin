@@ -58,10 +58,10 @@ class WikiJsClient:
         self._hostname = urlsplit(self._base_url).hostname or ""
         self._site_id = site_id or None
         self._client = httpx.Client(
-            headers={
-                "Authorization": f"Bearer {api_token}",
-                "Content-Type": "application/json",
-            },
+            # No fixed Content-Type: httpx sets application/json itself when a JSON
+            # body is sent, and Wiki.js rejects a bodyless request (DELETE) that
+            # declares it ("Body cannot be empty").
+            headers={"Authorization": f"Bearer {api_token}"},
             timeout=timeout,
             transport=transport,
         )
