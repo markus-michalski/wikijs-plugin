@@ -327,6 +327,14 @@ class WikiJsClient:
             body["title"] = title
         return self._request("POST", self._pages_path(f"/{page_id}/restore"), json=body)
 
+    def render_page(self, page_id: str) -> dict[str, Any]:
+        """Queue the page to be rendered again from its source.
+
+        Wiki.js serves the stored render, and a REST write does not refresh it, so
+        readers and full-text search keep the old page until this runs.
+        """
+        return self._request("POST", self._pages_path(f"/{page_id}/render"))
+
     def list_tags(self) -> list[dict[str, Any]]:
         data = self._request("GET", f"/sites/{self.site_id}/tags")
         return data if isinstance(data, list) else []

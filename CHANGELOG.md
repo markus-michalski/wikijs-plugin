@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `wikijs_render_page` queues a page to be rendered again from its source, for a write that reported
+  `renderQueued: false` or after a bulk change.
 - `localeRelations` on `wikijs_create_page` and `wikijs_update_page` links a page to its
   translation (e.g. DE and EN) so Wiki.js offers the language switcher. The link works in
   both directions; the list is the whole set, an empty list unlinks. `wikijs_get_page` now
@@ -48,6 +50,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs-wiki` rules said Wiki.js 3 no longer renders source line breaks as hard `<br>`. It still
   does (checked with a freshly rendered page), so the 2.0.0 removal of the single-line callout
   rule was wrong and the rule is back.
+- Content written through the REST API did not reach readers: Wiki.js serves the stored render,
+  and a REST write leaves it stale (an updated page kept its old look, a new one is blank and
+  invisible to search). `wikijs_create_page` and `wikijs_update_page` (with content) now queue a
+  render afterwards; a failure (no Puppeteer extension, rate limit) is returned as
+  `renderQueued: false` with a `renderWarning` instead of failing the write. Needs the Puppeteer
+  extension on the wiki.
 - `wikijs_delete_page` failed with HTTP 400 ("Body cannot be empty") against Wiki.js 3:
   the client sent `Content-Type: application/json` on a request without a body. Found
   in the first live write test with a personal access token.
