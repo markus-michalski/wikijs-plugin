@@ -10,13 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `wikijs_list_tags` takes `limit` (default 50) and `query` (case-insensitive substring) and
-  reports `total`. A wiki can carry hundreds of tags; returning all of them filled the context.
+- Nothing yet
 
 ### Changed
-- Write results are compact: `wikijs_update_page`, `wikijs_move_page` and `wikijs_restore_page`
-  return only id, path, title, locale, publishState and updatedAt of the page. Wiki.js answers
-  with the whole page (render, table of contents, settings), which was echoed back to the caller.
+- Nothing yet
 
 ### Deprecated
 - Nothing yet
@@ -25,12 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nothing yet
 
 ### Fixed
-- `wikijs_restore_page` brought a page back with an empty render (blank to readers and invisible
-  to search). It now queues a render like create and update do, and reports `renderQueued` /
-  `renderWarning`.
+- Nothing yet
 
 ### Security
 - Nothing yet
+
+## [2.1.1] - 2026-11-13
+
+### Fixed
+- render after restore, compact write results, filterable tag list (#36)
 
 ## [2.1.0] - 2026-11-13
 
@@ -126,7 +126,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [1.0.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.0.0
 [1.1.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.1.0
-[Unreleased]: https://github.com/markus-michalski/wikijs-plugin/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/markus-michalski/wikijs-plugin/compare/v2.1.1...HEAD
 [1.2.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.0
 [1.2.1]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.1
 [1.2.2]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.2
@@ -137,3 +137,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [1.5.2]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.5.2
 [2.0.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v2.0.0
 [2.1.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v2.1.0
+[2.1.1]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v2.1.1
