@@ -90,22 +90,27 @@ git clone https://github.com/markus-michalski/{repo}.git
 ### 9. Beispiele (mindestens 3)
 
 ```markdown
-### Beispiele {.tabset}
+### Beispiele
 
-#### Einfache Verwendung
+:::block-tabs
+::block-tab{label="Einfache Verwendung"}
 \`\`\`bash
 ./script.sh input.txt
 \`\`\`
+::
 
-#### Mit Optionen
+::block-tab{label="Mit Optionen"}
 \`\`\`bash
 ./script.sh --verbose --output result.txt input.txt
 \`\`\`
+::
 
-#### Dry Run
+::block-tab{label="Dry Run"}
 \`\`\`bash
 ./script.sh --dry-run input.txt
 \`\`\`
+::
+:::
 ```
 
 ### 10. Konfiguration (falls Config-Datei vorhanden)
@@ -143,6 +148,7 @@ git clone https://github.com/markus-michalski/{repo}.git
 Execution-Flow:
 
 ````markdown
+::block-diagram
 ```mermaid
 graph TD
     A["Start"] --> B["Parse Arguments"]
@@ -155,6 +161,7 @@ graph TD
     H --> I["Output Result"]
     I --> J["Exit 0"]
 ```
+::
 ````
 
 ## Agent-Einsatz fuer Bash/Shell

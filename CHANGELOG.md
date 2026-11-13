@@ -10,16 +10,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing yet
+- Optional `WIKIJS_SITE_ID` to skip the hostname lookup via `/_api/bootstrap`.
+- `docs-wiki` content rules for Wiki.js 3: Mermaid in `::block-diagram`, tabs as
+  `:::block-tabs` / `::block-tab{label="..."}`, unindented HTML blocks, link format
+  (English without prefix, German as `/de-DE/...`).
 
 ### Changed
-- Nothing yet
+- **BREAKING: Wiki.js 3 only.** The client now uses the Wiki.js 3 REST API
+  (`/_api/sites/:siteId/pages`) instead of the Wiki.js 2 GraphQL API. Wiki.js 2 is no
+  longer supported; stay on 1.x for it.
+- **BREAKING: configuration.** `WIKIJS_API_URL` is the wiki's base URL (no `/graphql`;
+  a `/graphql` URL is rejected with a hint). `WIKIJS_API_TOKEN` must be a personal
+  access token with the `pages` scope.
+- **BREAKING: page IDs are strings** (UUIDs) instead of integers: the `id` parameter of
+  `wikijs_get_page`, `wikijs_update_page`, `wikijs_delete_page` and `wikijs_move_page`.
+- **BREAKING: locales.** German is `de-DE` (was `de`). Rows in the local history DB
+  written under `de` do not match `de-DE` queries; verified markers from Wiki.js 2 are
+  stale after the migration anyway and are re-created by a baseline run.
+- **BREAKING: `isPrivate` removed** from `wikijs_create_page` (no Wiki.js 3 equivalent).
+  The `editor` is passed through as given (`markdown` by default) instead of being
+  limited to `markdown`/`code`/`ckeditor`.
+- `isPublished` maps to Wiki.js 3's `publishState` (`false` -> `draft`, `true` ->
+  `published`), so draft-first publishing keeps working. Page results keep an
+  `isPublished` flag and add `publishState`.
+- `wikijs_update_page` is a true partial update: only the fields you pass are sent, so
+  title, description and tags are no longer fetched and resent.
+- `wikijs_list_pages` reads through the search endpoint (Wiki.js 3's list route is a
+  stub); a second search filtered to drafts supplies the `isPublished` flag of each entry.
 
 ### Deprecated
 - Nothing yet
 
 ### Removed
-- Nothing yet
+- The Wiki.js 2 notes in `docs-wiki` (Mermaid 8.8.2 restrictions, single-line callouts
+  and hard `<br>` for source line breaks, `{.tabset}`).
 
 ### Fixed
 - Nothing yet

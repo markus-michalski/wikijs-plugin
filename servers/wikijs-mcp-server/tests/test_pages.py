@@ -1,8 +1,8 @@
 """Tests for tools/pages.py — business logic behind the wikijs_* MCP tools.
 
-The update_page tests port tests/update-page.test.ts 1:1 (auto-fetch content/
-title/description/tags on metadata-only updates — see the original PR notes,
-Ticket 897857).
+Wiki.js 3 updates are partial (PATCH): update_page sends only the fields the
+caller passed, so there is no auto-fetch of title/description/tags any more.
+The one remaining fetch is for the content-shrink guard and path resolution.
 """
 from __future__ import annotations
 
@@ -12,11 +12,15 @@ from unittest.mock import MagicMock
 import pytest
 from tools import history, pages
 
+PID = "309a0d75-e06d-4ab3-a8cf-9dae8f27c85a"
+NEW_PID = "7c1f2a9e-5b34-4c0a-9d41-0e6a8b2f3d10"
+MISSING_PID = "00000000-0000-4000-8000-000000000000"
+
 
 def make_client(**overrides) -> MagicMock:
     client = MagicMock()
     client.get_page_by_id.return_value = {
-        "id": 42,
+        "id": PID,
         "path": "test/page",
         "title": "Test Page",
         "content": "# Existing Content\n\nThis is the existing content.",
@@ -25,7 +29,7 @@ def make_client(**overrides) -> MagicMock:
         "tags": ["existing-tag"],
     }
     client.get_page_by_path.return_value = {
-        "id": 42,
+        "id": PID,
         "path": "test/page",
         "title": "Test Page",
         "content": "# Existing Content\n\nThis is the existing content.",
@@ -33,136 +37,66 @@ def make_client(**overrides) -> MagicMock:
         "isPublished": False,
         "tags": ["existing-tag"],
     }
-    client.get_all_pages.return_value = [
-        {"id": 42, "path": "test/page", "title": "Test Page", "tags": ["existing-tag"]},
-    ]
-    client.update_page.return_value = {"succeeded": True, "errorCode": 0, "message": "Page updated successfully"}
+    client.update_page.return_value = {"ok": True, "message": "Page updated successfully"}
     for key, value in overrides.items():
         setattr(client, key, value)
     return client
 
 
-class TestUpdatePageAutoFetch:
-    def test_auto_fetches_content_when_only_ispublished_changed(self):
+class TestUpdatePagePartial:
+    def test_metadata_only_update_sends_only_that_field_and_fetches_nothing(self):
         client = make_client()
-        pages.update_page(client, page_id=42, is_published=True)
+        pages.update_page(client, page_id=PID, is_published=True)
 
-        client.get_page_by_id.assert_called_with(42)
+        client.get_page_by_id.assert_not_called()
         client.update_page.assert_called_with(
-            page_id=42,
-            content="# Existing Content\n\nThis is the existing content.",
-            title="Test Page",
+            page_id=PID,
+            content=None,
+            title=None,
             description=None,
             is_published=True,
-            tags=["existing-tag"],
+            tags=None,
         )
 
-    def test_auto_fetches_content_when_only_title_changed(self):
+    def test_title_only_update(self):
         client = make_client()
-        pages.update_page(client, page_id=42, title="New Title")
-
-        client.get_page_by_id.assert_called_with(42)
+        pages.update_page(client, page_id=PID, title="New Title")
         args = client.update_page.call_args.kwargs
-        assert args["content"] == "# Existing Content\n\nThis is the existing content."
         assert args["title"] == "New Title"
+        assert args["content"] is None
 
-    def test_auto_fetches_content_when_only_description_changed(self):
+    def test_description_only_update(self):
         client = make_client()
-        pages.update_page(client, page_id=42, description="New description")
-
-        client.get_page_by_id.assert_called_with(42)
+        pages.update_page(client, page_id=PID, description="New description")
         args = client.update_page.call_args.kwargs
-        assert args["content"] == "# Existing Content\n\nThis is the existing content."
         assert args["description"] == "New description"
+        assert args["content"] is None
 
-    def test_does_not_override_content_when_explicitly_provided(self):
+    def test_explicit_content_is_sent_unchanged(self):
         client = make_client()
-        pages.update_page(client, page_id=42, content="# New Content", is_published=True)
-
+        pages.update_page(client, page_id=PID, content="# New Content", is_published=True)
         args = client.update_page.call_args.kwargs
         assert args["content"] == "# New Content"
         assert args["is_published"] is True
 
-    def test_resolves_page_by_path_and_auto_fetches_content(self):
+    def test_resolves_page_by_path_and_uses_its_id(self):
         client = make_client()
         pages.update_page(client, path="test/page", locale="en", is_published=True)
 
         client.get_page_by_path.assert_called_with("test/page", "en")
         args = client.update_page.call_args.kwargs
-        assert args["page_id"] == 42
-        assert args["content"] == "# Existing Content\n\nThis is the existing content."
+        assert args["page_id"] == PID
+        assert args["content"] is None
 
-
-class TestUpdatePageTags:
-    def test_preserves_existing_tags_when_not_provided(self):
+    def test_tags_are_passed_through_when_set(self):
         client = make_client()
-        pages.update_page(client, page_id=42, content="# Updated Content")
-
-        client.get_all_pages.assert_called()
-        assert client.update_page.call_args.kwargs["tags"] == ["existing-tag"]
-
-    def test_uses_provided_tags_when_explicitly_set(self):
-        client = make_client()
-        pages.update_page(client, page_id=42, content="# Updated Content", tags=["new-tag"])
-
-        client.get_all_pages.assert_not_called()
+        pages.update_page(client, page_id=PID, content="# Updated Content", tags=["new-tag"])
         assert client.update_page.call_args.kwargs["tags"] == ["new-tag"]
 
-
-class TestUpdatePageTitleDescriptionAutoFetch:
-    def test_auto_fetches_title_when_only_content_updated(self):
+    def test_tags_are_left_alone_when_omitted(self):
         client = make_client()
-        pages.update_page(client, page_id=42, content="# New Content")
-        assert client.update_page.call_args.kwargs["title"] == "Test Page"
-
-    def test_auto_fetches_description_when_only_content_updated(self):
-        client = make_client(
-            get_page_by_id=MagicMock(
-                return_value={
-                    "id": 42,
-                    "path": "test/page",
-                    "title": "Test Page",
-                    "description": "Existing description",
-                    "content": "# Existing Content",
-                    "locale": "en",
-                    "isPublished": False,
-                    "tags": ["existing-tag"],
-                }
-            )
-        )
-        pages.update_page(client, page_id=42, content="# New Content")
-        assert client.update_page.call_args.kwargs["description"] == "Existing description"
-
-    def test_does_not_override_title_when_explicitly_provided(self):
-        client = make_client()
-        pages.update_page(client, page_id=42, title="Custom Title", content="# New Content")
-        assert client.update_page.call_args.kwargs["title"] == "Custom Title"
-
-    def test_does_not_override_description_when_explicitly_provided(self):
-        client = make_client()
-        pages.update_page(client, page_id=42, description="Custom desc", content="# New Content")
-        assert client.update_page.call_args.kwargs["description"] == "Custom desc"
-
-    def test_auto_fetches_title_and_description_via_path_resolution(self):
-        client = make_client(
-            get_page_by_path=MagicMock(
-                return_value={
-                    "id": 42,
-                    "path": "test/page",
-                    "title": "Path Page Title",
-                    "description": "Path page description",
-                    "content": "# Path Content",
-                    "locale": "en",
-                    "isPublished": True,
-                    "tags": ["tag1"],
-                }
-            )
-        )
-        pages.update_page(client, path="test/page", locale="en", is_published=False)
-        args = client.update_page.call_args.kwargs
-        assert args["title"] == "Path Page Title"
-        assert args["description"] == "Path page description"
-        assert args["content"] == "# Path Content"
+        pages.update_page(client, page_id=PID, content="# Updated Content")
+        assert client.update_page.call_args.kwargs["tags"] is None
 
 
 class TestUpdatePageContentShrinkGuard:
@@ -178,7 +112,7 @@ class TestUpdatePageContentShrinkGuard:
         return make_client(
             get_page_by_id=MagicMock(
                 return_value={
-                    "id": 42,
+                    "id": PID,
                     "path": "test/page",
                     "title": "Test Page",
                     "content": self._OLD_CONTENT,
@@ -192,13 +126,13 @@ class TestUpdatePageContentShrinkGuard:
     def test_blocks_drastic_shrink_without_confirmation(self):
         client = self._client_with_old_content()
         with pytest.raises(ValueError, match="Refusing update"):
-            pages.update_page(client, page_id=42, content="short")
+            pages.update_page(client, page_id=PID, content="short")
         client.update_page.assert_not_called()
 
     def test_error_names_old_and_new_lengths_and_the_escape_hatch(self):
         client = self._client_with_old_content()
         with pytest.raises(ValueError) as exc_info:
-            pages.update_page(client, page_id=42, content="short")
+            pages.update_page(client, page_id=PID, content="short")
         message = str(exc_info.value)
         assert str(len(self._OLD_CONTENT)) in message
         # Must be the MCP-facing camelCase name (server.py's actual parameter),
@@ -209,26 +143,27 @@ class TestUpdatePageContentShrinkGuard:
 
     def test_allows_drastic_shrink_with_confirmation(self):
         client = self._client_with_old_content()
-        pages.update_page(client, page_id=42, content="short", confirm_content_shrink=True)
+        pages.update_page(client, page_id=PID, content="short", confirm_content_shrink=True)
         assert client.update_page.call_args.kwargs["content"] == "short"
 
     def test_allows_similar_size_replacement_without_confirmation(self):
         client = self._client_with_old_content()
         new_content = self._OLD_CONTENT + " Plus a bit more text appended."
-        pages.update_page(client, page_id=42, content=new_content)
+        pages.update_page(client, page_id=PID, content=new_content)
         assert client.update_page.call_args.kwargs["content"] == new_content
 
     def test_skips_guard_for_small_existing_pages(self):
         """Default fixture content (~51 chars) is under the guard's minimum length."""
         client = make_client()
-        pages.update_page(client, page_id=42, content="x")
+        pages.update_page(client, page_id=PID, content="x")
         assert client.update_page.call_args.kwargs["content"] == "x"
 
     def test_does_not_apply_when_content_is_omitted(self):
         """Metadata-only updates never touch content, so the guard must not fire."""
         client = self._client_with_old_content()
-        pages.update_page(client, page_id=42, is_published=True)
-        assert client.update_page.call_args.kwargs["content"] == self._OLD_CONTENT
+        pages.update_page(client, page_id=PID, is_published=True)
+        client.get_page_by_id.assert_not_called()
+        assert client.update_page.call_args.kwargs["content"] is None
 
     def test_blocks_drastic_shrink_when_page_resolved_by_path(self):
         """current_page comes from get_page_by_path on this branch, not
@@ -236,7 +171,7 @@ class TestUpdatePageContentShrinkGuard:
         client = make_client(
             get_page_by_path=MagicMock(
                 return_value={
-                    "id": 42,
+                    "id": PID,
                     "path": "test/page",
                     "title": "Test Page",
                     "content": self._OLD_CONTENT,
@@ -255,7 +190,7 @@ class TestUpdatePageErrors:
     def test_raises_when_page_not_found_by_id(self):
         client = make_client(get_page_by_id=MagicMock(return_value=None))
         with pytest.raises(ValueError, match="not found"):
-            pages.update_page(client, page_id=999, is_published=True)
+            pages.update_page(client, page_id=MISSING_PID, content="# New")
 
     def test_raises_when_page_not_found_by_path(self):
         client = make_client(get_page_by_path=MagicMock(return_value=None))
@@ -271,26 +206,26 @@ class TestUpdatePageErrors:
 class TestCreatePage:
     def test_creates_page_successfully(self):
         client = make_client()
-        client.create_page.return_value = {"id": 5, "path": "new/page", "title": "New"}
+        client.create_page.return_value = {"id": NEW_PID, "path": "new/page", "title": "New"}
         result = pages.create_page(
             client, path="new/page", title="New", content="content", description="desc"
         )
-        assert result["page"]["id"] == 5
+        assert result["page"]["id"] == NEW_PID
         assert "new/page" in result["message"]
 
     def test_rejects_invalid_editor(self):
         client = make_client()
         with pytest.raises(ValueError):
             pages.create_page(
-                client, path="p", title="T", content="c", description="d", editor="wordperfect"
+                client, path="p", title="T", content="c", description="d", editor="Word Perfect"
             )
 
 
 class TestGetPage:
     def test_returns_page_by_id(self):
         client = make_client()
-        result = pages.get_page(client, page_id=42)
-        assert result["id"] == 42
+        result = pages.get_page(client, page_id=PID)
+        assert result["id"] == PID
 
     def test_raises_when_neither_id_nor_path(self):
         client = make_client()
@@ -300,7 +235,7 @@ class TestGetPage:
     def test_raises_when_page_not_found(self):
         client = make_client(get_page_by_id=MagicMock(return_value=None))
         with pytest.raises(ValueError, match="not found"):
-            pages.get_page(client, page_id=1)
+            pages.get_page(client, page_id=PID)
 
 
 class TestListPages:
@@ -334,7 +269,7 @@ class TestDeletePage:
         client = make_client()
         client.delete_page.return_value = {"succeeded": True, "errorCode": 0, "message": "ok"}
         pages.delete_page(client, path="test/page", locale="en")
-        client.delete_page.assert_called_with(42)
+        client.delete_page.assert_called_with(PID)
 
     def test_raises_when_neither_id_nor_path(self):
         client = make_client()
@@ -346,9 +281,9 @@ class TestMovePage:
     def test_moves_by_id(self):
         client = make_client()
         client.move_page.return_value = {"succeeded": True, "errorCode": 0, "message": "ok"}
-        result = pages.move_page(client, page_id=42, destination_path="new/path")
+        result = pages.move_page(client, page_id=PID, destination_path="new/path")
         assert result["to"] == "new/path"
-        client.move_page.assert_called_with(42, "new/path", "en")
+        client.move_page.assert_called_with(PID, "new/path", "en")
 
     def test_raises_when_neither_id_nor_path(self):
         client = make_client()
@@ -361,7 +296,7 @@ class TestCreatePageSourceTracking:
 
     def test_logs_history_when_source_ref_given(self):
         client = make_client()
-        client.create_page.return_value = {"id": 5, "path": "new/page", "title": "New"}
+        client.create_page.return_value = {"id": NEW_PID, "path": "new/page", "title": "New"}
         pages.create_page(
             client, path="new/page", title="New", content="content", description="desc",
             locale="de", source_repo="wikijs-plugin", source_ref="abc123", summary="Initial docs",
@@ -375,14 +310,14 @@ class TestCreatePageSourceTracking:
 
     def test_no_history_row_when_no_source_fields_given(self):
         client = make_client()
-        client.create_page.return_value = {"id": 5, "path": "new/page", "title": "New"}
+        client.create_page.return_value = {"id": NEW_PID, "path": "new/page", "title": "New"}
         pages.create_page(client, path="new/page", title="New", content="content", description="desc")
         assert history.get_page_history("new/page") == []
 
     def test_source_fields_never_reach_the_wikijs_client(self):
         """The visible page content/description must never carry the source ref."""
         client = make_client()
-        client.create_page.return_value = {"id": 5, "path": "new/page", "title": "New"}
+        client.create_page.return_value = {"id": NEW_PID, "path": "new/page", "title": "New"}
         pages.create_page(
             client, path="new/page", title="New", content="content", description="desc",
             source_ref="abc123",
@@ -401,12 +336,12 @@ class TestCreatePageSourceTracking:
 
         monkeypatch.setattr(history, "log_page_change", _raise)
         client = make_client()
-        client.create_page.return_value = {"id": 5, "path": "new/page", "title": "New"}
+        client.create_page.return_value = {"id": NEW_PID, "path": "new/page", "title": "New"}
         result = pages.create_page(
             client, path="new/page", title="New", content="content", description="desc",
             source_ref="abc123",
         )
-        assert result["page"]["id"] == 5
+        assert result["page"]["id"] == NEW_PID
         assert "page-history logging failed" in capsys.readouterr().err
 
 
@@ -424,14 +359,14 @@ class TestUpdatePageSourceTracking:
     def test_logs_history_using_id_by_resolving_path(self):
         """No path given directly — must resolve it (from the auto-fetched current page) before logging."""
         client = make_client()
-        pages.update_page(client, page_id=42, is_published=True, source_ref="ghi789")
+        pages.update_page(client, page_id=PID, is_published=True, source_ref="ghi789")
         entries = history.get_page_history("test/page")  # make_client()'s fixture page path
         assert len(entries) == 1
         assert entries[0]["source_ref"] == "ghi789"
 
     def test_no_history_row_when_no_source_fields_given(self):
         client = make_client()
-        pages.update_page(client, page_id=42, is_published=True)
+        pages.update_page(client, page_id=PID, is_published=True)
         assert history.get_page_history("test/page") == []
 
     def test_logs_actual_page_locale_not_request_default_when_resolving_by_id(self):
@@ -440,11 +375,11 @@ class TestUpdatePageSourceTracking:
         just because the caller's `locale` kwarg defaulted to "en"."""
         client = make_client(
             get_page_by_id=MagicMock(return_value={
-                "id": 42, "path": "test/page", "title": "Test Page",
+                "id": PID, "path": "test/page", "title": "Test Page",
                 "content": "c", "locale": "de", "isPublished": False, "tags": [],
             })
         )
-        pages.update_page(client, page_id=42, is_published=True, source_ref="abc123")
+        pages.update_page(client, page_id=PID, is_published=True, source_ref="abc123")
         de_entries = history.get_page_history("test/page", locale="de")
         en_entries = history.get_page_history("test/page", locale="en")
         assert [e["source_ref"] for e in de_entries] == ["abc123"]
@@ -473,7 +408,7 @@ class TestUpdatePageSourceTracking:
         client.get_page_by_id() fallback to learn the path/locale."""
         client = make_client()
         pages.update_page(
-            client, page_id=42, content="# New", title="New Title", description="New desc",
+            client, page_id=PID, content="# New", title="New Title", description="New desc",
             source_ref="jkl012",
         )
         entries = history.get_page_history("test/page")

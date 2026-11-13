@@ -15,9 +15,18 @@ Install via the Claude Code plugin marketplace mechanism (`marketplace add` + `p
 Configure Wiki.js credentials in `~/.wikijs-plugin/.env`:
 
 ```
-WIKIJS_API_URL=https://your-wikijs-installation/graphql
-WIKIJS_API_TOKEN=your-api-token-here
+WIKIJS_API_URL=https://your-wikijs-installation
+WIKIJS_API_TOKEN=your-personal-access-token
 ```
+
+`WIKIJS_API_URL` is the wiki's base URL (no `/graphql`). `WIKIJS_API_TOKEN` is a
+**personal access token** with the `pages` scope; it acts as the user who created
+it. The site is resolved automatically from the hostname; set `WIKIJS_SITE_ID`
+only if that lookup fails.
+
+> **Upgrading from 1.x (Wiki.js 2):** this version talks to Wiki.js 3 only. See the
+> [CHANGELOG](./CHANGELOG.md) for the breaking changes (base URL, token, string page
+> IDs, `de-DE`).
 
 ## Components
 
@@ -30,7 +39,7 @@ Python (`mcp[cli]` + `httpx`), dedicated venv — same pattern as `mm-dev-toolki
 | `wikijs_create_page` | Create new wiki pages with Markdown or HTML |
 | `wikijs_update_page` | Update existing pages (content, title, tags) |
 | `wikijs_get_page` | Retrieve full page content and metadata |
-| `wikijs_list_pages` | List pages with pagination and filtering |
+| `wikijs_list_pages` | List pages with pagination and filtering (page IDs are UUIDs) |
 | `wikijs_search_pages` | Full-text search across wiki pages |
 | `wikijs_delete_page` | Permanently delete pages |
 | `wikijs_move_page` | Move pages to new paths |
@@ -86,8 +95,8 @@ refs from before this feature stay as information and are not verified. After up
 ## Requirements
 
 - Python 3.11+ (Windows: the `py` launcher works even where `python`/`python3` are Microsoft Store alias stubs)
-- Wiki.js instance (v2.x or v3.x)
-- Wiki.js API token with page management permissions
+- Wiki.js 3.x instance (Wiki.js 2 has no REST API; use plugin 1.x for it)
+- Personal access token with the `pages` scope, owned by a user who may read, write and manage pages
 
 ## Development
 

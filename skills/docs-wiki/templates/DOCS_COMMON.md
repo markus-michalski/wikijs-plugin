@@ -6,10 +6,11 @@ Diese Regeln gelten fuer ALLE Projekttypen. Immer zusammen mit dem typ-spezifisc
 
 Jede Wiki.js-Seite wird in **DE und EN** erstellt/aktualisiert.
 
-- Gleicher Pfad, unterschiedliche Locale (`locale: "de"` / `locale: "en"`)
-- Sprachlink oben auf jeder Seite:
-  - DE-Seite: `[English Version](https://faq.markus-michalski.net/en/{path})`
-  - EN-Seite: `[Deutsche Version](https://faq.markus-michalski.net/de/{path})`
+- Gleicher Pfad, unterschiedliche Locale (`locale: "de-DE"` / `locale: "en"`). Wiki.js 3 kennt
+  `de-DE` und `en`, ein nacktes `"de"` gibt es nicht mehr
+- Sprachlink oben auf jeder Seite (Englisch ohne Locale-Praefix, Deutsch mit `/de-DE/`):
+  - DE-Seite: `[English Version](https://faq.markus-michalski.net/{path})`
+  - EN-Seite: `[Deutsche Version](https://faq.markus-michalski.net/de-DE/{path})`
 - Code-Beispiele, CLI-Befehle, technische Terme bleiben in beiden Versionen gleich (welche
   Begriffe Lehnwörter bleiben, steht im Glossar von `translation-check`)
 - Nur Fliesstext, Ueberschriften, Beschreibungen uebersetzen
@@ -34,59 +35,47 @@ Nutze diese Wiki.js-spezifischen Markdown-Features aktiv:
 {.is-success}
 ```
 
-**KRITISCH - Callout Boxes NIE im Quelltext umbrechen:**
-
-Wiki.js fasst mehrzeilige `>`-Bloecke NICHT wie Standard-CommonMark zu Fliesstext zusammen —
-jeder einzelne Zeilenumbruch im Quelltext wird als hartes `<br>` gerendert. Ein Callout muss daher
-**immer eine einzige, unumbrochene Zeile** sein, unabhaengig von der Laenge:
-
-```markdown
-> Wichtiger Hinweis: Diese lange Warnung wurde bei ca. 90 Zeichen        <-- FALSCH
-> umgebrochen, um im Editor besser lesbar zu sein, und rendert in
-> Wiki.js mit sichtbaren Zeilenumbruechen mitten im Satz.
-{.is-warning}
-
-> Wichtiger Hinweis: Diese lange Warnung steht als eine einzige, unumbrochene Zeile im Quelltext und rendert in Wiki.js als normaler Fliesstext ohne sichtbare Umbrueche.   <-- KORREKT
-{.is-warning}
-```
+Zeilenumbrueche im Quelltext (Callouts, Absaetze, Listen) werden in Wiki.js 3 wie in CommonMark
+zu Fliesstext zusammengefasst, es entsteht kein hartes `<br>` mehr. Die Wiki.js-2-Regel
+"Callout immer in einer einzigen Zeile" und das manuelle `<br>` fuer Umbrueche entfallen.
 
 ### Content Tabs (fuer alternative Wege)
 
-```markdown
-### Installation {.tabset}
+Wiki.js 3 kennt kein `{.tabset}` mehr. Tabs sind ein Block: aeusserer Zaun mit **drei** Doppelpunkten
+(`:::block-tabs` ... `:::`), jeder Tab mit **zwei** (`::block-tab{label="..."}` ... `::`). Der aeussere
+Zaun hat drei, weil die Tabs darin selbst Bloecke sind. Die Ueberschrift steht davor, nicht im Block.
 
-#### Composer (Empfohlen)
+````markdown
+### Installation
+
+:::block-tabs
+::block-tab{label="Composer (Empfohlen)"}
+```bash
 composer require mmd/plugin-name
+```
+::
 
-#### ZIP Download
+::block-tab{label="ZIP Download"}
 1. Download von GitHub Releases
 2. Entpacken nach /include/plugins/
+::
 
-#### Git Clone
+::block-tab{label="Git Clone"}
+```bash
 git clone https://github.com/markus-michalski/repo-name.git
 ```
+::
+:::
+````
 
 ### Mermaid-Diagramme (Hub und `technical` je mindestens 1)
 
-**KRITISCH - Wiki.js Mermaid 8.8.2 Kompatibilitaet:**
+**Wiki.js 3: Mermaid wird nur innerhalb eines Blocks gezeichnet.** Ein einfacher Code-Zaun mit
+`mermaid` erscheint als Code-Block, nicht als Diagramm. Der Block ist `::block-diagram` (zwei
+Doppelpunkte, optional mit `caption`), darin der Mermaid-Zaun, am Ende `::`:
 
-Wiki.js nutzt Mermaid 8.8.2. Folgende Regeln sind PFLICHT:
-
-1. **`graph` statt `flowchart`** - `flowchart` wird NICHT unterstuetzt
-   - `graph TD` (top-down) statt `flowchart TD`
-   - `graph LR` (left-right) statt `flowchart LR`
-
-2. **Alle Node-Labels in Anfuehrungszeichen** - Sonderzeichen-Sicherheit
-   - `A["Label mit Sonderzeichen"]` statt `A[Label mit Sonderzeichen]`
-
-3. **Kein `::` in Labels** - Mermaid interpretiert `::` als CSS-Klassen-Zuweisung
-   - `A["enable()"]` statt `A["Plugin::enable()"]`
-   - Kurzform nutzen oder Punkt statt Doppelpunkt: `Plugin.enable()`
-
-4. **Kein `*` in Labels** - Wird als Markdown interpretiert
-   - `A["removeAll()"]` statt `A["remove*()"]`
-
-````markdown
+`````markdown
+::block-diagram{caption="Ablauf einer Anfrage"}
 ```mermaid
 graph LR
     A["Request"] --> B{"Plugin Active?"}
@@ -94,7 +83,12 @@ graph LR
     B -->|No| D["Skip"]
     C --> E["Response"]
 ```
-````
+::
+`````
+
+Die Mermaid-8.8.2-Einschraenkungen von Wiki.js 2 gelten nicht mehr (`flowchart` ist erlaubt). Labels
+mit Sonderzeichen trotzdem in Anfuehrungszeichen setzen (`A["enable()"]`), das haelt die Diagramme
+auch in anderen Renderern lesbar.
 
 ### Bild-Dimensionen (wenn Bilder vorhanden)
 
@@ -199,20 +193,21 @@ inhaltlich benannte Unterseiten (z.B. `plugins/storyforge/writing-modes`) behalt
 - Kopf: Sprachlink, Leerzeile, Link zurueck zum Hub, Leerzeile, H1
 
   ```markdown
-  [English Version](https://faq.markus-michalski.net/en/{path})
+  [English Version](https://faq.markus-michalski.net/{path})
 
-  [Zurueck zur Uebersicht](/de/{hub-pfad})
+  [Zurueck zur Uebersicht](/de-DE/{hub-pfad})
 
   # {Projekt}: {Thema}
   ```
 
-  EN: `[Deutsche Version](https://faq.markus-michalski.net/de/{path})` und
-  `[Back to overview](/en/{hub-pfad})`
+  EN: `[Deutsche Version](https://faq.markus-michalski.net/de-DE/{path})` und
+  `[Back to overview](/{hub-pfad})`
 - Titel: `{Projekt}: {Thema}` (z.B. "ALTCHA: Konfiguration")
 - Eigene Description (max 250 Zeichen), die zum Thema der Unterseite passt, nicht die Hub-Description
 - Tags wie beim Hub
-- Links zwischen Seiten immer als absoluter Wiki-Pfad mit Locale (`/de/...`, `/en/...`), nie als
-  `#anchor` auf eine Seite, die es nicht mehr gibt
+- Links zwischen Seiten immer als absoluter Wiki-Pfad, Englisch ohne Praefix (`/mcp/...`), Deutsch
+  mit `/de-DE/...`, nie als `#anchor` auf eine Seite, die es nicht mehr gibt. Alte `/en/`- und
+  `/de/`-URLs funktionieren ueber Weiterleitungen weiter, werden aber nicht mehr neu geschrieben
 - Das Mermaid-Pflichtdiagramm liegt auf dem Hub (Uebersicht) und auf `technical` (Detail). Auf den
   uebrigen Unterseiten nur, wenn es den Inhalt klarer macht
 - Callouts, Tabs, Troubleshooting-Pattern und alle anderen Regeln dieser Datei gelten
@@ -225,13 +220,13 @@ Kategorien wechseln koennen:
 
 | Seite | Link fuehrt zu | Beispiel |
 |-------|----------------|----------|
-| Unterseite | Hub | `[Zurueck zur Uebersicht](/de/oxid7/sitemap)` |
-| Hub | Kategorie-Seite | `[Alle OXID 7 Plugins](/de/oxid7)` |
-| Kategorie-Seite | Home | `[← Zur Hauptuebersicht](/de/home)` |
+| Unterseite | Hub | `[Zurueck zur Uebersicht](/de-DE/oxid7/sitemap)` |
+| Hub | Kategorie-Seite | `[Alle OXID 7 Plugins](/de-DE/oxid7)` |
+| Kategorie-Seite | Home | `[← Zur Hauptuebersicht](/de-DE/home)` |
 
 - Der Link steht direkt unter dem Sprachlink (Markdown) bzw. im Hero-Bereich unter dem Untertitel
   (HTML-Kategorie-Seiten, helle Linkfarbe wegen dunklem Hintergrund)
-- Absoluter Wiki-Pfad mit Locale, wie bei allen Links (`/de/...`, `/en/...`)
+- Absoluter Wiki-Pfad, wie bei allen Links (`/de-DE/...`, Englisch ohne Praefix)
 - EN-Pendants: `Back to overview`, `All OXID 7 Plugins`, `Back to main overview`
 - Fehlt die direkte Elternseite (z.B. keine Kategorie-Seite), gilt die naechsthoehere vorhandene
   Seite, sonst Home
@@ -246,6 +241,10 @@ Unterseiten**, nicht nur auf den Hub: erster Link der Hub, danach die wichtigste
 (Installation, Konfiguration, Fehlerbehebung, typ-spezifische). Bei neuem Projekt wird die Karte
 angelegt, bei Umbau oder neuer Unterseite wird sie nachgezogen. Format der Kategorie-Seite
 (HTML-Karten oder Markdown-Tabelle) von der bestehenden Seite uebernehmen, nicht neu erfinden.
+
+**HTML-Bloecke nicht einruecken:** In Wiki.js 3 wird ein eingerueckter HTML-Block nach einer
+Leerzeile zum Markdown-Code-Block (4 Leerzeichen = Code). HTML-Karten und Hero-Bereiche beginnen
+deshalb in Spalte 0. Nach einer Leerzeile darf keine Zeile des Blocks eingerueckt beginnen.
 
 ### Bestehende Einzelseite umbauen (Update und Qualitaets-Upgrade)
 
@@ -297,8 +296,8 @@ Codebase analysieren und Hauptdokumentation schreiben.
 
 Mindestens 1 Uebersichtsdiagramm fuer den Hub und 1 Detaildiagramm fuer `technical` erstellen.
 
-**WICHTIG:** Mermaid 8.8.2 Kompatibilitaetsregeln beachten (siehe oben):
-- `graph` statt `flowchart`, Labels in Quotes, kein `::` oder `*` in Labels
+**WICHTIG:** Jedes Diagramm steht in einem `::block-diagram`-Block (siehe oben), ein einfacher
+`mermaid`-Zaun wird in Wiki.js 3 nicht gezeichnet. Labels mit Sonderzeichen in Quotes.
 
 **Diagramm-Typen nach Bedarf:**
 - Flowchart (`graph TD`/`graph LR`): Plugin-Lifecycle, Entscheidungslogik
@@ -504,14 +503,14 @@ Translation-Check (Schritt 6) laufen dagegen einmal ueber den gesamten Seiten-Sa
 4. Screenshot-Vorschlaege (SCREENSHOTS.md): Marker in den Content setzen, Vorschlagsliste dem User zeigen → DE und EN mit identischen IDs
 5. /wikijs-plugin:source-check über alle DE- und EN-Seiten           → FAIL: mit Codewerten korrigieren, erneut prüfen; WARN: User fragen
 6. /wikijs-plugin:translation-check über alle DE- und EN-Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
-7. wikijs_create_page(path, locale: "de", isPublished: false,
+7. wikijs_create_page(path, locale: "de-DE", isPublished: false,
                        sourceRepo, sourceRef, summary, ...)          → je Unterseite DE, dann Hub DE (Draft)
 8. wikijs_create_page(path, locale: "en", isPublished: false,
                        sourceRepo, sourceRef, summary, ...)          → je Unterseite EN, dann Hub EN (Draft)
    Ende des Laufs ohne Freigabe: Draft-Pfade und offene Marker-IDs nennen, dann stoppen
 9. Freigabe-Gate: Screenshot-URLs vom User → Marker ersetzen          → wikijs_get_page + wikijs_update_page(..., isPublished: false), Pruefung laut Gate
    ODER ausdrueckliche Freigabe des Users                             → ohne Pruefung, offene IDs vorher nennen
-10. wikijs_update_page(path, locale: "de", isPublished: true,
+10. wikijs_update_page(path, locale: "de-DE", isPublished: true,
                         sourceRepo, sourceRef, summary)              → ohne content, je Unterseite DE, dann Hub DE
 11. wikijs_update_page(path, locale: "en", isPublished: true,
                         sourceRepo, sourceRef, summary)              → ohne content, je Unterseite EN, dann Hub EN
@@ -519,7 +518,7 @@ Translation-Check (Schritt 6) laufen dagegen einmal ueber den gesamten Seiten-Sa
     wikijs_mark_verified(path, locale, sourceRepo, sourceRef,
                           pageUpdatedAt)                             → je Seite und Sprache, nur nach PASS oder vom User freigegebenem WARN
 13. Kategorie-Seite: Karte mit Links auf die Unterseiten anlegen      → wikijs_get_page + wikijs_update_page, erst nach der Freigabe
-14. wikijs_get_page(path, locale: "de")                              → Hub und Unterseiten verifizieren
+14. wikijs_get_page(path, locale: "de-DE")                              → Hub und Unterseiten verifizieren
 ```
 
 Unterseiten zuerst, Hub zuletzt, damit die Links des Hubs nicht ins Leere laufen.
@@ -531,14 +530,14 @@ Ist die Doku bereits Hub + Unterseiten, wird nur die betroffene Seite pro Sprach
 eine Einzelseite, zuerst "Bestehende Einzelseite umbauen" ausfuehren.
 
 ```
-1. wikijs_get_page(path, locale: "de")                               → Aktuelle Version laden
+1. wikijs_get_page(path, locale: "de-DE")                               → Aktuelle Version laden
 2. wikijs_get_page(path, locale: "en")                               → EN-Version laden
 3. Einzelseite? → zu Hub + Unterseiten umbauen (siehe oben)          → Umbau vor inhaltlichen Aenderungen
 4. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
 5. Content mit Agents ueberarbeiten                                  → Aenderungen einarbeiten
 6. /wikijs-plugin:source-check über alle geänderten Seiten plus Seiten, auf denen entfernte Inventarpunkte stehen → Gültiger Verified Ref: Code-Diff plus jeden geänderten Abschnitt prüfen; sonst Claim-Check und Inventar-Check (1a) über den ganzen Seiten-Satz (wird Baseline). FAIL: mit Codewerten korrigieren
 7. /wikijs-plugin:translation-check über alle geänderten Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
-8. wikijs_update_page(path, locale: "de", isPublished: true,
+8. wikijs_update_page(path, locale: "de-DE", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → DE-Version updaten
 9. wikijs_update_page(path, locale: "en", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → EN-Version updaten
@@ -550,7 +549,7 @@ eine Einzelseite, zuerst "Bestehende Einzelseite umbauen" ausfuehren.
 ### Qualitaets-Upgrade
 
 ```
-1. wikijs_get_page(path, locale: "de")                               → Aktuelle Version laden
+1. wikijs_get_page(path, locale: "de-DE")                               → Aktuelle Version laden
 2. Luecken identifizieren:
    - Einzelseite statt Hub + Unterseiten? → zuerst umbauen (siehe oben)
    - Fehlende Mermaid-Diagramme?
@@ -562,7 +561,7 @@ eine Einzelseite, zuerst "Bestehende Einzelseite umbauen" ausfuehren.
 4. git rev-parse HEAD im Zielprojekt (falls Git-Repo)                → sourceRef ermitteln
 5. /wikijs-plugin:source-check über alle geänderten Seiten plus Seiten, auf denen entfernte Inventarpunkte stehen → Gültiger Verified Ref: Code-Diff plus jeden geänderten Abschnitt prüfen; sonst Claim-Check und Inventar-Check (1a) über den ganzen Seiten-Satz (wird Baseline). FAIL: mit Codewerten korrigieren
 6. /wikijs-plugin:translation-check über alle geänderten Seiten      → FAIL: überarbeiten, erneut prüfen; WARN: User fragen
-7. wikijs_update_page(path, locale: "de", isPublished: true,
+7. wikijs_update_page(path, locale: "de-DE", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → DE-Version updaten
 8. wikijs_update_page(path, locale: "en", isPublished: true,
                        sourceRepo, sourceRef, summary, ...)          → EN-Version updaten
@@ -601,8 +600,10 @@ Vor dem Erstellen/Updaten ALLE Punkte pruefen:
 - [ ] Neue Doku: Screenshot-Vorschlaege gemacht (Marker mit identischen IDs in DE und EN, ausser bei sprachabhaengigen Motiven mit `_de`/`_en`-Suffix, Vorschlagsliste gezeigt) oder bewusst keine, weil das Projekt keine sinnvollen Motive hat
 - [ ] Neue Doku: nichts veroeffentlicht ohne Freigabe-Gate (Screenshots geliefert und geprueft, oder ausdrueckliche Freigabe des Users)
 - [ ] Kategorie-Karte erst nach der Freigabe angelegt, nicht auf Draft-Seiten verlinkt
-- [ ] Mermaid: `graph` statt `flowchart`, Labels in Quotes, kein `::` oder `*`
-- [ ] Callout Boxes (`> ...`) stehen als eine einzige unumbrochene Zeile im Quelltext, nie manuell umgebrochen
+- [ ] Mermaid steht in `::block-diagram` (nicht als einfacher Code-Zaun), Labels mit Sonderzeichen in Quotes
+- [ ] Tabs als `:::block-tabs` / `::block-tab{label="..."}`, kein `{.tabset}`
+- [ ] HTML-Bloecke (Karten, Hero) beginnen in Spalte 0, nicht eingerueckt
+- [ ] Links: Englisch ohne Locale-Praefix, Deutsch als `/de-DE/...`
 
 ## Wiki.js Seiten-Metadaten
 

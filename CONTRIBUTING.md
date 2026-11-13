@@ -46,7 +46,7 @@ wikijs-plugin/
 ├── bin/                         # OS-agnostic run-server wrapper (POSIX + Windows)
 ├── requirements.txt             # runtime deps (installed by /wikijs-plugin:setup)
 ├── requirements-dev.txt         # + pytest/ruff/mypy
-├── servers/wikijs-mcp-server/   # Python MCP server (Wiki.js GraphQL client)
+├── servers/wikijs-mcp-server/   # Python MCP server (Wiki.js 3 REST client)
 │   ├── run.py                   # stdio entry point
 │   ├── server.py                # @mcp.tool() registrations
 │   └── tools/                   # client.py, pages.py, validation.py, config.py
@@ -57,7 +57,7 @@ wikijs-plugin/
 
 ### Adding a New MCP Tool
 
-1. Add the GraphQL query/mutation to `tools/client.py`'s `WikiJsClient`
+1. Add the REST call to `tools/client.py`'s `WikiJsClient` (routes live under `/_api/sites/:siteId/...`)
 2. Add the business logic (validation, id/path resolution) to `tools/pages.py`
 3. Register the tool in `server.py` with `@mcp.tool(annotations=ToolAnnotations(...))`
 4. All tools must use the `wikijs_` prefix — keeps parity with the original

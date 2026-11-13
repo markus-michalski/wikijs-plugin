@@ -25,13 +25,17 @@ CONTENT_SHRINK_GUARD_MIN_OLD_LEN = 200
 CONTENT_SHRINK_GUARD_RATIO = 0.5
 
 _LOCALE_RE = re.compile(r"^[a-z]{2}(-[A-Z]{2})?$")
+_PAGE_ID_RE = re.compile(
+    r"^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[0-9a-f]{8,32})\Z"
+)
+_EDITOR_RE = re.compile(r"^[a-z][a-z0-9-]{0,63}\Z")
 _PATH_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9\-_/]*[a-zA-Z0-9]$|^[a-zA-Z0-9]$")
 
 
 def validate_locale(locale: str) -> str:
     """Validate a locale code (e.g. "en", "de", "en-US")."""
     if not _LOCALE_RE.match(locale):
-        raise ValueError('Locale must be a valid language code (e.g., "en", "de", "en-US")')
+        raise ValueError('Locale must be a valid language code (e.g., "en", "de-DE")')
     return locale
 
 
@@ -65,11 +69,18 @@ def validate_content(content: str) -> str:
     return content
 
 
-def validate_page_id(page_id: int) -> int:
-    """Validate a page ID (positive integer)."""
-    if page_id <= 0:
-        raise ValueError("Page ID must be a positive integer")
+def validate_page_id(page_id: str) -> str:
+    """Validate a Wiki.js 3 page ID: a UUID, or the hex path hash it also accepts."""
+    if not isinstance(page_id, str) or not _PAGE_ID_RE.match(page_id):
+        raise ValueError("Page ID must be a UUID (e.g. 309a0d75-e06d-4ab3-a8cf-9dae8f27c85a)")
     return page_id
+
+
+def validate_editor(editor: str) -> str:
+    """Validate an editor id (e.g. "markdown"). Which ones exist is up to the wiki."""
+    if not isinstance(editor, str) or not _EDITOR_RE.match(editor):
+        raise ValueError('Editor must be a lowercase id such as "markdown"')
+    return editor
 
 
 def validate_title(title: str) -> str:

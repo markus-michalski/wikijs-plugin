@@ -64,11 +64,13 @@ Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentati
 - Tabelle: Anforderung | Version | Hinweise
 - Shopware 6.6.x / 6.7.x, PHP 8.2+, Lizenz
 
-### 6. Installation {.tabset}
+### 6. Installation
 
-#### Via Shopware Store (Empfohlen)
-#### Via Composer
+:::block-tabs
+::block-tab{label="Via Shopware Store (Empfohlen)"}
+::
 
+::block-tab{label="Via Composer"}
 Composer-Installationen nutzen Packeton:
 
 ```markdown
@@ -82,6 +84,8 @@ bin/console plugin:refresh
 bin/console plugin:install --activate {PluginName}
 bin/console cache:clear
 ```
+::
+:::
 
 ### 7. Update
 - Composer update Befehl
@@ -92,16 +96,21 @@ bin/console cache:clear
 - Gruppiert nach Tabs wenn viele Settings:
 
 ```markdown
-### Einstellungen {.tabset}
+### Einstellungen
 
-#### Allgemein
+:::block-tabs
+::block-tab{label="Allgemein"}
 [Tabelle]
+::
 
-#### Darstellung
+::block-tab{label="Darstellung"}
 [Tabelle]
+::
 
-#### Erweitert
+::block-tab{label="Erweitert"}
 [Tabelle]
+::
+:::
 ```
 
 ### 9. Admin-Modul (Shopware-spezifisch, falls vorhanden)
@@ -146,6 +155,7 @@ bin/console cache:clear
 Plugin-Lifecycle / Subscriber-Flow:
 
 ````markdown
+::block-diagram
 ```mermaid
 graph TD
     A["Shopware Event"] --> B["Plugin Subscriber"]
@@ -155,11 +165,13 @@ graph TD
     E --> F["Modify Response"]
     F --> G["Storefront Renders"]
 ```
+::
 ````
 
 Fuer Plugins mit Storefront-Integration:
 
 ````markdown
+::block-diagram
 ```mermaid
 graph LR
     A["Page Load"] --> B["Subscriber"]
@@ -169,6 +181,7 @@ graph LR
     E --> F["Rendered HTML"]
     F --> G["JavaScript Init"]
 ```
+::
 ````
 
 ## Agent-Einsatz fuer Shopware 6

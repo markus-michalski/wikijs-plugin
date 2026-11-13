@@ -1,219 +1,365 @@
-"""Tests for the Wiki.js GraphQL API client."""
+"""Tests for the Wiki.js 3 REST API client."""
 from __future__ import annotations
 
 import json
 
 import httpx
 import pytest
-from tools.client import WikiJsClient, WikiJsError
+from tools.client import WikiJsClient, WikiJsError, path_hash
 from tools.validation import CHARACTER_LIMIT
 
-
-def make_client(handler) -> WikiJsClient:
-    transport = httpx.MockTransport(handler)
-    return WikiJsClient("https://wiki.example.com/graphql", "test-token", transport=transport)
-
-
-def json_response(payload, status_code=200):
-    def handler(request):
-        return httpx.Response(status_code, json=payload)
-    return handler
+SITE_ID = "40a75b1e-4ef8-44fe-9d65-92d7b0e243df"
+PAGE_ID = "309a0d75-e06d-4ab3-a8cf-9dae8f27c85a"
+BASE_URL = "https://wiki.example.com"
 
 
-class TestQuery:
-    def test_returns_data_on_success(self):
-        client = make_client(json_response({"data": {"hello": "world"}}))
-        assert client.query("query { hello }") == {"hello": "world"}
+class Recorder:
+    """Routes MockTransport requests by "METHOD /path" and records them."""
+
+    def __init__(self, routes: dict[str, object] | None = None) -> None:
+        self.routes = routes or {}
+        self.requests: list[httpx.Request] = []
+
+    def __call__(self, request: httpx.Request) -> httpx.Response:
+        self.requests.append(request)
+        key = f"{request.method} {request.url.path}"
+        if key == "GET /_api/bootstrap" and key not in self.routes:
+            return httpx.Response(200, json={"site": {"id": SITE_ID}})
+        if key not in self.routes:
+            return httpx.Response(404, json={"statusCode": 404, "message": f"no route {key}"})
+        result = self.routes[key]
+        if callable(result):
+            return result(request)
+        if isinstance(result, httpx.Response):
+            return result
+        return httpx.Response(200, json=result)
+
+    def calls(self, key: str) -> list[httpx.Request]:
+        method, path = key.split(" ", 1)
+        return [r for r in self.requests if r.method == method and r.url.path == path]
+
+
+def make_client(routes: dict[str, object] | None = None, base_url: str = BASE_URL):
+    recorder = Recorder(routes)
+    client = WikiJsClient(base_url, "test-token", transport=httpx.MockTransport(recorder))
+    return client, recorder
+
+
+def body_of(request: httpx.Request):
+    return json.loads(request.content)
+
+
+class TestPathHash:
+    # Reference values computed with the upstream JS implementation (cyrb53).
+    @pytest.mark.parametrize(
+        ("path", "expected"),
+        [
+            ("home", "1867eaf483ceab"),
+            ("oxid7/pdf-invoice/templates", "14ab9776295947"),
+            ("über/größe", "10179a0b0ce370"),
+        ],
+    )
+    def test_matches_upstream(self, path, expected):
+        assert path_hash(path) == expected
+
+    def test_leading_slash_is_ignored(self):
+        assert path_hash("/home") == path_hash("home")
+
+
+class TestSiteResolution:
+    def test_resolves_site_id_via_bootstrap_with_hostname(self):
+        client, rec = make_client({f"GET /_api/sites/{SITE_ID}/pages/search": {"results": [], "totalHits": 0}})
+        client.search_pages("hello")
+        bootstrap = rec.calls("GET /_api/bootstrap")
+        assert len(bootstrap) == 1
+        assert bootstrap[0].url.params["hostname"] == "wiki.example.com"
+
+    def test_site_id_is_cached(self):
+        client, rec = make_client({f"GET /_api/sites/{SITE_ID}/pages/search": {"results": [], "totalHits": 0}})
+        client.search_pages("one")
+        client.search_pages("two")
+        assert len(rec.calls("GET /_api/bootstrap")) == 1
+
+    def test_explicit_site_id_skips_bootstrap(self):
+        recorder = Recorder({f"GET /_api/sites/{SITE_ID}/pages/search": {"results": [], "totalHits": 0}})
+        client = WikiJsClient(
+            BASE_URL, "t", site_id=SITE_ID, transport=httpx.MockTransport(recorder)
+        )
+        client.search_pages("hello")
+        assert recorder.calls("GET /_api/bootstrap") == []
+
+    def test_base_url_with_subpath_and_trailing_slash(self):
+        recorder = Recorder({"GET /wiki/_api/bootstrap": {"site": {"id": SITE_ID}}})
+        client = WikiJsClient(
+            "https://example.com/wiki/", "t", transport=httpx.MockTransport(recorder)
+        )
+        with pytest.raises(WikiJsError):  # search route unknown, but bootstrap path must be right
+            client.search_pages("hello")
+        assert recorder.calls("GET /wiki/_api/bootstrap")
+
+    def test_missing_site_in_bootstrap_raises(self):
+        client, _ = make_client({"GET /_api/bootstrap": {"site": None}})
+        with pytest.raises(WikiJsError, match="site"):
+            client.search_pages("hello")
+
+
+class TestRequest:
+    def test_malformed_page_id_is_wrapped_not_leaked(self):
+        client, _ = make_client()
+        with pytest.raises(WikiJsError):
+            client.get_page_by_id("abc\ndef")
 
     def test_sends_bearer_token(self):
-        captured = {}
+        client, rec = make_client({f"GET /_api/sites/{SITE_ID}/pages/search": {"results": [], "totalHits": 0}})
+        client.search_pages("hello")
+        assert all(r.headers["authorization"] == "Bearer test-token" for r in rec.requests)
 
-        def handler(request):
-            captured["auth"] = request.headers.get("authorization")
-            return httpx.Response(200, json={"data": {}})
+    def test_http_error_surfaces_server_message(self):
+        client, _ = make_client({
+            f"GET /_api/sites/{SITE_ID}/pages/search": httpx.Response(
+                401, json={"statusCode": 401, "error": "Unauthorized", "message": "Token expired"}
+            )
+        })
+        with pytest.raises(WikiJsError, match="401.*Token expired"):
+            client.search_pages("hello")
 
-        client = make_client(handler)
-        client.query("query { x }")
-        assert captured["auth"] == "Bearer test-token"
-
-    def test_raises_on_graphql_errors(self):
-        client = make_client(json_response({"errors": [{"message": "boom"}]}))
-        with pytest.raises(WikiJsError, match="boom"):
-            client.query("query { x }")
-
-    def test_raises_on_http_error_status(self):
-        client = make_client(json_response({}, status_code=500))
-        with pytest.raises(WikiJsError, match="500"):
-            client.query("query { x }")
-
-    def test_raises_when_no_data_returned(self):
-        client = make_client(json_response({}))
-        with pytest.raises(WikiJsError, match="No data"):
-            client.query("query { x }")
+    def test_http_error_without_json_body(self):
+        client, _ = make_client({
+            f"GET /_api/sites/{SITE_ID}/pages/search": httpx.Response(502, text="Bad Gateway")
+        })
+        with pytest.raises(WikiJsError, match="502"):
+            client.search_pages("hello")
 
     def test_raises_on_timeout(self):
         def handler(request):
+            if request.url.path == "/_api/bootstrap":
+                return httpx.Response(200, json={"site": {"id": SITE_ID}})
             raise httpx.TimeoutException("timed out", request=request)
 
-        client = make_client(handler)
+        client = WikiJsClient(BASE_URL, "t", transport=httpx.MockTransport(handler))
         with pytest.raises(WikiJsError, match="timed out"):
-            client.query("query { x }")
+            client.search_pages("hello")
+
+
+def _search_result(page_id, path, locale, **extra):
+    return {"id": page_id, "path": path, "locale": locale, "title": path.upper(),
+            "description": "", "tags": [], "createdAt": "", "updatedAt": "", **extra}
 
 
 class TestListPages:
-    def _pages(self):
-        return [
-            {"id": 1, "path": "a", "title": "A", "description": "", "isPublished": True,
-             "locale": "en", "contentType": "markdown", "createdAt": "", "updatedAt": "", "tags": []},
-            {"id": 2, "path": "b", "title": "B", "description": "", "isPublished": True,
-             "locale": "de", "contentType": "markdown", "createdAt": "", "updatedAt": "", "tags": []},
-            {"id": 3, "path": "c", "title": "C", "description": "", "isPublished": True,
-             "locale": "en", "contentType": "markdown", "createdAt": "", "updatedAt": "", "tags": []},
-        ]
+    route = f"GET /_api/sites/{SITE_ID}/pages/search"
 
-    def test_filters_by_locale(self):
-        client = make_client(json_response({"data": {"pages": {"list": self._pages()}}}))
-        result = client.list_pages(locale="en")
-        assert result["total"] == 2
-        assert [p["id"] for p in result["pages"]] == [1, 3]
+    def _handler(self, everything, drafts=()):
+        """Search mock honouring limit/offset/publishState like the real endpoint."""
+        def handler(request):
+            params = request.url.params
+            pool = [p for p in everything if p["id"] in drafts] if params.get("publishState") == "draft" else everything
+            if params.get("locales"):
+                pool = [p for p in pool if p["locale"] == params["locales"]]
+            offset = int(params.get("offset", 0))
+            limit = int(params["limit"])
+            return httpx.Response(200, json={"results": pool[offset:offset + limit], "totalHits": len(pool)})
+        return handler
 
-    def test_paginates(self):
-        client = make_client(json_response({"data": {"pages": {"list": self._pages()}}}))
-        result = client.list_pages(limit=1, offset=1)
+    def _pages(self, n, locale="en"):
+        return [_search_result(str(i), f"p{i}", locale) for i in range(n)]
+
+    def test_offset_and_limit_are_passed_to_the_server(self):
+        client, rec = make_client({self.route: self._handler(self._pages(300))})
+        result = client.list_pages(limit=10, offset=150)
+        assert [p["id"] for p in result["pages"]] == [str(i) for i in range(150, 160)]
+        assert result["total"] == 300
+        listing = [r for r in rec.calls(self.route) if "publishState" not in r.url.params]
+        assert len(listing) == 1
+        assert listing[0].url.params["offset"] == "150"
+        assert listing[0].url.params["limit"] == "10"
+
+    def test_limit_above_api_maximum_is_fetched_in_chunks(self):
+        client, rec = make_client({self.route: self._handler(self._pages(250))})
+        result = client.list_pages(limit=200)
+        assert len(result["pages"]) == 200
+        listing = [r for r in rec.calls(self.route) if "publishState" not in r.url.params]
+        assert [r.url.params["limit"] for r in listing] == ["100", "100"]
+        assert [r.url.params["offset"] for r in listing] == ["0", "100"]
+
+    def test_stops_at_end_of_results(self):
+        client, _ = make_client({self.route: self._handler(self._pages(3))})
+        result = client.list_pages(limit=50, offset=0)
         assert result["total"] == 3
-        assert [p["id"] for p in result["pages"]] == [2]
+        assert len(result["pages"]) == 3
 
-    def test_no_locale_filter_returns_all(self):
-        client = make_client(json_response({"data": {"pages": {"list": self._pages()}}}))
-        result = client.list_pages()
-        assert result["total"] == 3
+    def test_locale_filter_is_sent_to_server(self):
+        everything = self._pages(2, "en") + [_search_result("d", "d", "de-DE")]
+        client, rec = make_client({self.route: self._handler(everything)})
+        result = client.list_pages(locale="de-DE")
+        assert [p["id"] for p in result["pages"]] == ["d"]
+        assert all(r.url.params["locales"] == "de-DE" for r in rec.calls(self.route))
+
+    def test_drafts_are_marked_not_published(self):
+        client, _ = make_client({self.route: self._handler(self._pages(3), drafts={"1"})})
+        flags = {p["id"]: p["isPublished"] for p in client.list_pages()["pages"]}
+        assert flags == {"0": True, "1": False, "2": True}
 
 
 class TestGetPage:
-    def test_get_page_by_id_returns_none_when_missing(self):
-        client = make_client(json_response({"data": {"pages": {"single": None}}}))
-        assert client.get_page_by_id(999) is None
+    def test_get_by_id_requests_content_and_normalizes(self):
+        page = {"id": PAGE_ID, "path": "a", "title": "A", "locale": "en", "publishState": "draft",
+                "content": "hi", "tags": ["x"], "contentType": "markdown"}
+        client, rec = make_client({f"GET /_api/sites/{SITE_ID}/pages/{PAGE_ID}": page})
+        result = client.get_page_by_id(PAGE_ID)
+        assert rec.calls(f"GET /_api/sites/{SITE_ID}/pages/{PAGE_ID}")[0].url.params["withContent"] == "true"
+        assert result["isPublished"] is False
+        assert result["publishState"] == "draft"
+        assert result["content"] == "hi"
 
-    def test_get_page_by_id_truncates_long_content(self):
+    def test_published_state_maps_to_is_published_true(self):
+        page = {"id": PAGE_ID, "path": "a", "title": "A", "locale": "en", "publishState": "published"}
+        client, _ = make_client({f"GET /_api/sites/{SITE_ID}/pages/{PAGE_ID}": page})
+        assert client.get_page_by_id(PAGE_ID)["isPublished"] is True
+
+    def test_get_by_id_returns_none_on_404(self):
+        client, _ = make_client({
+            f"GET /_api/sites/{SITE_ID}/pages/{PAGE_ID}": httpx.Response(404, json={"message": "nope"})
+        })
+        assert client.get_page_by_id(PAGE_ID) is None
+
+    def test_get_by_id_truncates_long_content(self):
         long_content = "x" * (CHARACTER_LIMIT + 500)
-        page = {"id": 1, "path": "a", "title": "A", "description": "", "content": long_content,
-                "contentType": "markdown", "isPublished": True, "locale": "en"}
-        client = make_client(json_response({"data": {"pages": {"single": page}}}))
-        result = client.get_page_by_id(1)
+        page = {"id": PAGE_ID, "path": "a", "title": "A", "locale": "en", "content": long_content}
+        client, _ = make_client({f"GET /_api/sites/{SITE_ID}/pages/{PAGE_ID}": page})
+        result = client.get_page_by_id(PAGE_ID)
         assert len(result["content"]) < len(long_content)
         assert "truncated" in result["content"]
 
-    def test_get_page_by_path_passes_locale(self):
-        captured = {}
+    def test_get_by_path_uses_path_hash_with_path_and_locale(self):
+        h = path_hash("some/path")
+        page = {"id": PAGE_ID, "path": "some/path", "title": "S", "locale": "de-DE"}
+        client, rec = make_client({f"GET /_api/sites/{SITE_ID}/pages/{h}": page})
+        result = client.get_page_by_path("some/path", "de-DE")
+        params = rec.calls(f"GET /_api/sites/{SITE_ID}/pages/{h}")[0].url.params
+        assert params["path"] == "some/path"
+        assert params["locale"] == "de-DE"
+        assert params["withContent"] == "true"
+        assert result["id"] == PAGE_ID
 
-        def handler(request):
-            body = json.loads(request.content)
-            captured["variables"] = body["variables"]
-            return httpx.Response(200, json={"data": {"pages": {"singleByPath": None}}})
+    def test_get_by_path_returns_none_on_404(self):
+        client, _ = make_client()
+        assert client.get_page_by_path("missing", "en") is None
 
-        client = make_client(handler)
-        client.get_page_by_path("some/path", "de")
-        assert captured["variables"] == {"path": "some/path", "locale": "de"}
+    def test_other_errors_are_not_swallowed(self):
+        client, _ = make_client({
+            f"GET /_api/sites/{SITE_ID}/pages/{PAGE_ID}": httpx.Response(403, json={"message": "forbidden"})
+        })
+        with pytest.raises(WikiJsError, match="403"):
+            client.get_page_by_id(PAGE_ID)
 
 
 class TestSearchPages:
-    def test_filters_results_by_locale(self):
-        payload = {
-            "data": {
-                "pages": {
-                    "search": {
-                        "results": [
-                            {"id": 1, "title": "A", "path": "a", "description": "", "locale": "en"},
-                            {"id": 2, "title": "B", "path": "b", "description": "", "locale": "de"},
-                        ],
-                        "suggestions": [],
-                        "totalHits": 2,
-                    }
-                }
-            }
-        }
-        client = make_client(json_response(payload))
-        result = client.search_pages("query", locale="de")
+    def test_passes_query_and_locale_and_maps_total(self):
+        payload = {"results": [_search_result("a", "a", "de-DE")], "totalHits": 1}
+        client, rec = make_client({f"GET /_api/sites/{SITE_ID}/pages/search": payload})
+        result = client.search_pages("query", locale="de-DE")
+        params = rec.calls(f"GET /_api/sites/{SITE_ID}/pages/search")[0].url.params
+        assert params["query"] == "query"
+        assert params["locales"] == "de-DE"
         assert result["totalHits"] == 1
-        assert [r["id"] for r in result["results"]] == [2]
+        assert result["results"][0]["id"] == "a"
+        assert result["suggestions"] == []
 
 
-class TestMutations:
-    def test_create_page_raises_on_failure(self):
-        payload = {"data": {"pages": {"create": {
-            "responseResult": {"succeeded": False, "errorCode": 1, "message": "path taken"},
-            "page": None,
-        }}}}
-        client = make_client(json_response(payload))
-        with pytest.raises(WikiJsError, match="path taken"):
-            client.create_page(
-                path="x", title="X", content="c", description="d",
-                locale="en", editor="markdown", is_published=True, is_private=False, tags=[],
-            )
+class TestCreatePage:
+    def _create(self, client, **overrides):
+        kwargs = dict(path="x", title="X", content="c", description="d", locale="en",
+                      editor="markdown", is_published=False, tags=["t"])
+        kwargs.update(overrides)
+        return client.create_page(**kwargs)
 
-    def test_create_page_returns_page_on_success(self):
-        payload = {"data": {"pages": {"create": {
-            "responseResult": {"succeeded": True, "errorCode": 0, "message": ""},
-            "page": {"id": 5, "path": "x", "title": "X"},
-        }}}}
-        client = make_client(json_response(payload))
-        page = client.create_page(
-            path="x", title="X", content="c", description="d",
-            locale="en", editor="markdown", is_published=True, is_private=False, tags=[],
-        )
-        assert page == {"id": 5, "path": "x", "title": "X"}
-
-    def test_update_page_sends_null_for_omitted_fields(self):
-        captured = {}
-
-        def handler(request):
-            captured["variables"] = json.loads(request.content)["variables"]
-            return httpx.Response(200, json={"data": {"pages": {"update": {
-                "responseResult": {"succeeded": True, "errorCode": 0, "message": "ok"}
-            }}}})
-
-        client = make_client(handler)
-        client.update_page(page_id=42, content="new content")
-        assert captured["variables"] == {
-            "id": 42, "content": "new content", "title": None,
-            "description": None, "isPublished": None, "tags": None,
+    def test_posts_page_input_with_publish_state(self):
+        route = f"POST /_api/sites/{SITE_ID}/pages"
+        created = {"ok": True, "message": "ok", "page": {"id": PAGE_ID, "path": "x", "title": "X"}}
+        client, rec = make_client({route: created})
+        page = self._create(client)
+        assert page == {"id": PAGE_ID, "path": "x", "title": "X"}
+        assert body_of(rec.calls(route)[0]) == {
+            "path": "x", "title": "X", "content": "c", "description": "d",
+            "locale": "en", "editor": "markdown", "publishState": "draft", "tags": ["t"],
         }
 
-    def test_update_page_raises_on_failure(self):
-        payload = {"data": {"pages": {"update": {
-            "responseResult": {"succeeded": False, "errorCode": 1, "message": "nope"}
-        }}}}
-        client = make_client(json_response(payload))
-        with pytest.raises(WikiJsError, match="nope"):
-            client.update_page(page_id=1)
+    def test_published_sends_published(self):
+        route = f"POST /_api/sites/{SITE_ID}/pages"
+        client, rec = make_client({route: {"ok": True, "page": {"id": PAGE_ID, "path": "x", "title": "X"}}})
+        self._create(client, is_published=True)
+        assert body_of(rec.calls(route)[0])["publishState"] == "published"
 
-    def test_delete_page_raises_on_failure(self):
-        payload = {"data": {"pages": {"delete": {
-            "responseResult": {"succeeded": False, "errorCode": 1, "message": "denied"}
-        }}}}
-        client = make_client(json_response(payload))
+    def test_failure_raises_with_server_message(self):
+        route = f"POST /_api/sites/{SITE_ID}/pages"
+        client, _ = make_client({route: httpx.Response(409, json={"message": "path taken"})})
+        with pytest.raises(WikiJsError, match="path taken"):
+            self._create(client)
+
+
+class TestUpdatePage:
+    route = f"PATCH /_api/sites/{SITE_ID}/pages/{PAGE_ID}"
+
+    def test_sends_only_provided_fields(self):
+        client, rec = make_client({self.route: {"ok": True, "message": "saved", "page": {"id": PAGE_ID}}})
+        client.update_page(page_id=PAGE_ID, content="new content")
+        assert body_of(rec.calls(self.route)[0]) == {"content": "new content"}
+
+    def test_is_published_maps_to_publish_state(self):
+        client, rec = make_client({self.route: {"ok": True, "page": {"id": PAGE_ID}}})
+        client.update_page(page_id=PAGE_ID, is_published=True)
+        assert body_of(rec.calls(self.route)[0]) == {"publishState": "published"}
+
+    def test_all_fields(self):
+        client, rec = make_client({self.route: {"ok": True, "page": {"id": PAGE_ID}}})
+        client.update_page(page_id=PAGE_ID, content="c", title="t", description="d", tags=["a"])
+        assert body_of(rec.calls(self.route)[0]) == {
+            "content": "c", "title": "t", "description": "d", "tags": ["a"],
+        }
+
+    def test_returns_server_result(self):
+        client, _ = make_client({self.route: {"ok": True, "message": "saved", "page": {"id": PAGE_ID}}})
+        result = client.update_page(page_id=PAGE_ID, title="t")
+        assert result["ok"] is True
+        assert result["message"] == "saved"
+
+    def test_failure_raises(self):
+        denied = httpx.Response(403, json={"message": "You are not allowed to edit this page."})
+        client, _ = make_client({self.route: denied})
+        with pytest.raises(WikiJsError, match="not allowed"):
+            client.update_page(page_id=PAGE_ID, title="t")
+
+    def test_nothing_to_update_is_rejected_locally(self):
+        client, rec = make_client()
+        with pytest.raises(WikiJsError, match="Nothing to update"):
+            client.update_page(page_id=PAGE_ID)
+        assert rec.requests == []
+
+
+class TestDeletePage:
+    route = f"DELETE /_api/sites/{SITE_ID}/pages/{PAGE_ID}"
+
+    def test_delete_handles_204(self):
+        client, _ = make_client({self.route: httpx.Response(204)})
+        assert client.delete_page(PAGE_ID) == {"ok": True}
+
+    def test_delete_failure_raises(self):
+        client, _ = make_client({self.route: httpx.Response(403, json={"message": "denied"})})
         with pytest.raises(WikiJsError, match="denied"):
-            client.delete_page(1)
+            client.delete_page(PAGE_ID)
 
-    def test_move_page_raises_on_failure(self):
-        payload = {"data": {"pages": {"move": {
-            "responseResult": {"succeeded": False, "errorCode": 1, "message": "conflict"}
-        }}}}
-        client = make_client(json_response(payload))
+
+class TestMovePage:
+    route = f"PUT /_api/sites/{SITE_ID}/pages/{PAGE_ID}/path"
+
+    def test_sends_path_and_locale(self):
+        client, rec = make_client({self.route: {"ok": True, "message": "moved", "page": {"id": PAGE_ID}}})
+        result = client.move_page(PAGE_ID, "new/path", "de-DE")
+        assert body_of(rec.calls(self.route)[0]) == {"path": "new/path", "locale": "de-DE"}
+        assert result["ok"] is True
+
+    def test_failure_raises(self):
+        client, _ = make_client({self.route: httpx.Response(409, json={"message": "conflict"})})
         with pytest.raises(WikiJsError, match="conflict"):
-            client.move_page(1, "new/path", "en")
-
-
-class TestGetAllPages:
-    def test_delegates_to_list_pages_with_large_limit(self):
-        captured = {}
-
-        def handler(request):
-            body = json.loads(request.content)
-            captured["variables"] = body["variables"]
-            return httpx.Response(200, json={"data": {"pages": {"list": []}}})
-
-        client = make_client(handler)
-        client.get_all_pages()
-        # get_all_pages fetches everything client-side (no server-side limit/offset vars)
-        assert client.get_all_pages() == []
+            client.move_page(PAGE_ID, "new/path", "en")

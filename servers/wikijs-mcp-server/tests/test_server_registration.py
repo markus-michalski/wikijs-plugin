@@ -85,19 +85,20 @@ def test_tool_success_returns_structured_content(monkeypatch):
     from mcp.client import Client
 
     fake_client = MagicMock()
+    page_id = "309a0d75-e06d-4ab3-a8cf-9dae8f27c85a"
     fake_client.get_page_by_id.return_value = {
-        "id": 1, "path": "a", "title": "A", "description": "", "content": "c",
+        "id": page_id, "path": "a", "title": "A", "description": "", "content": "c",
         "contentType": "markdown", "isPublished": True, "locale": "en",
     }
     monkeypatch.setattr(server, "_get_client", lambda: fake_client)
 
     async def _call():
         async with Client(server.mcp) as client:
-            return await client.call_tool("wikijs_get_page", {"id": 1})
+            return await client.call_tool("wikijs_get_page", {"id": page_id})
 
     result = asyncio.run(_call())
     assert not result.is_error
-    assert result.structured_content["id"] == 1
+    assert result.structured_content["id"] == page_id
 
 
 def test_get_page_history_tool_requires_no_wikijs_client(monkeypatch):

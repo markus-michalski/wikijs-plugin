@@ -1,7 +1,7 @@
 """Wiki.js MCP Server.
 
-Provides Model Context Protocol (MCP) tools for interacting with the Wiki.js
-GraphQL API. Tool names, parameters, and descriptions mirror the original
+Provides Model Context Protocol (MCP) tools for interacting with the Wiki.js 3
+REST API. Tool names, parameters, and descriptions mirror the original
 TypeScript implementation (wikijs-mcp-server v2.0.1) so existing docs/callers
 keep working unchanged.
 """
@@ -13,7 +13,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
 from tools import pages
 from tools.client import WikiJsClient
-from tools.config import load_credentials
+from tools.config import load_credentials, load_site_id
 
 mcp = MCPServer("wikijs-mcp")
 
@@ -31,7 +31,7 @@ def _get_client() -> WikiJsClient:
     global _client
     if _client is None:
         api_url, api_token = load_credentials()
-        _client = WikiJsClient(api_url, api_token)
+        _client = WikiJsClient(api_url, api_token, site_id=load_site_id())
     return _client
 
 
@@ -48,7 +48,6 @@ def wikijs_create_page(
     locale: str = "en",
     editor: str = "markdown",
     isPublished: bool = True,
-    isPrivate: bool = False,
     tags: list[str] | None = None,
     sourceRepo: str = "",
     sourceRef: str = "",
@@ -64,10 +63,9 @@ def wikijs_create_page(
         title: Page title (max 200 chars)
         content: Page content in markdown or HTML
         description: Meta description (max 500 chars)
-        locale: Page locale, default "en"
-        editor: "markdown" (default), "code", or "ckeditor"
+        locale: Page locale, default "en" (German is "de-DE")
+        editor: Editor id, "markdown" (default) or any other editor the wiki offers
         isPublished: Publish immediately, default True
-        isPrivate: Private page, default False
         tags: Tags for categorization
         sourceRepo: Optional source repo name for page-history tracking (e.g.
             "wikijs-plugin"). Logged to a local DB only, never written into
@@ -88,7 +86,6 @@ def wikijs_create_page(
         locale=locale,
         editor=editor,
         is_published=isPublished,
-        is_private=isPrivate,
         tags=tags,
         source_repo=sourceRepo,
         source_ref=sourceRef,
@@ -102,17 +99,17 @@ def wikijs_create_page(
     )
 )
 def wikijs_get_page(
-    id: int | None = None,
+    id: str | None = None,
     path: str | None = None,
     locale: str = "en",
 ) -> dict[str, Any]:
     """Get a page from Wiki.js by ID or path. Returns full content and metadata.
 
-    Identify the page either by its numeric ID or by its path + locale.
+    Identify the page either by its ID (UUID) or by its path + locale.
     Content over 100,000 characters is truncated with a notice.
 
     Args:
-        id: Page ID (use this OR path)
+        id: Page ID, a UUID (use this OR path)
         path: Page path (use this OR id)
         locale: Page locale, default "en" (required when using path)
     """
@@ -135,7 +132,7 @@ def wikijs_list_pages(
     pagination.has_more / pagination.next_offset in the response.
 
     Args:
-        locale: Filter by locale (e.g. "en", "de")
+        locale: Filter by locale (e.g. "en", "de-DE")
         limit: Max pages to return, default 50, max 200
         offset: Skip N pages for pagination, default 0
     """
@@ -165,7 +162,7 @@ def wikijs_search_pages(query: str, locale: str | None = None) -> dict[str, Any]
     )
 )
 def wikijs_update_page(
-    id: int | None = None,
+    id: str | None = None,
     path: str | None = None,
     locale: str = "en",
     content: str | None = None,
@@ -180,10 +177,10 @@ def wikijs_update_page(
 ) -> dict[str, Any]:
     """Update an existing page in Wiki.js.
 
-    Identify the page by ID or path+locale. If content/title/description
-    aren't provided, the current values are automatically preserved (so a
-    metadata-only update, e.g. changing isPublished, works without resending
-    the whole page). Same for tags.
+    Identify the page by ID or path+locale. The update is partial: only the
+    fields you pass are changed, everything else (including tags) stays as it
+    is, so a metadata-only update such as changing isPublished needs no
+    resending of the page.
 
     WARNING: `content`, when provided, REPLACES the page's entire body —
     there is no diff/merge, and no way to append or patch just one section.
@@ -198,7 +195,7 @@ def wikijs_update_page(
     call with confirmContentShrink=True.
 
     Args:
-        id: Page ID (use this OR path)
+        id: Page ID, a UUID (use this OR path)
         path: Page path (use this OR id)
         locale: Page locale, default "en" (required with path)
         content: New page content — REPLACES the entire page, optional
@@ -237,7 +234,7 @@ def wikijs_update_page(
     )
 )
 def wikijs_delete_page(
-    id: int | None = None,
+    id: str | None = None,
     path: str | None = None,
     locale: str = "en",
 ) -> dict[str, Any]:
@@ -247,7 +244,7 @@ def wikijs_delete_page(
     ID or path+locale.
 
     Args:
-        id: Page ID (use this OR path)
+        id: Page ID, a UUID (use this OR path)
         path: Page path (use this OR id)
         locale: Page locale, default "en" (required with path)
     """
@@ -261,7 +258,7 @@ def wikijs_delete_page(
 )
 def wikijs_move_page(
     destinationPath: str,
-    id: int | None = None,
+    id: str | None = None,
     path: str | None = None,
     locale: str = "en",
     destinationLocale: str = "en",
@@ -279,7 +276,7 @@ def wikijs_move_page(
 
     Args:
         destinationPath: New path for the page (e.g. "new-category/page-name")
-        id: Page ID to move (use this OR path)
+        id: Page ID, a UUID, to move (use this OR path)
         path: Current page path (use this OR id)
         locale: Current page locale, default "en"
         destinationLocale: Target locale, default "en"
@@ -355,7 +352,7 @@ def wikijs_mark_verified(
 
     Args:
         path: Page path (same as passed to create_page/update_page; a leading "/" is ignored)
-        locale: Page locale (de, en, ...)
+        locale: Page locale (de-DE, en, ...)
         sourceRepo: Source project name (same value as used for create/update)
         sourceRef: Git commit hash or tag the page was verified against (required)
         pageUpdatedAt: The page's Wiki.js updatedAt at the time of the check (required)
