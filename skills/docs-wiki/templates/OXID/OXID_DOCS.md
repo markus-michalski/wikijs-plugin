@@ -12,18 +12,13 @@
 ### Open Source (GitHub)
 
 ```markdown
-[![GitHub](https://img.shields.io/badge/GitHub-{REPO_NAME}-blue?logo=github)](https://github.com/markus-michalski/{REPO_NAME})
-[![CI](https://github.com/markus-michalski/{REPO_NAME}/actions/workflows/ci.yml/badge.svg)](https://github.com/markus-michalski/{REPO_NAME}/actions)
-[![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](https://github.com/markus-michalski/{REPO_NAME}/blob/main/LICENSE)
-[![OXID](https://img.shields.io/badge/OXID-7.x-green.svg)](https://www.oxid-esales.com)
-[![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg?logo=php)](https://www.php.net/)
+[![GitHub](https://img.shields.io/badge/GitHub-{REPO_NAME}-blue?logo=github)](https://github.com/markus-michalski/{REPO_NAME}) [![CI](https://github.com/markus-michalski/{REPO_NAME}/actions/workflows/ci.yml/badge.svg)](https://github.com/markus-michalski/{REPO_NAME}/actions) [![License](https://img.shields.io/badge/license-GPL%20v3-blue.svg)](https://github.com/markus-michalski/{REPO_NAME}/blob/main/LICENSE) [![OXID](https://img.shields.io/badge/OXID-7.x-green.svg)](https://www.oxid-esales.com) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg?logo=php)](https://www.php.net/)
 ```
 
 ### Kommerziell
 
 ```markdown
-[![OXID](https://img.shields.io/badge/OXID-7.x-green.svg)](https://www.oxid-esales.com)
-[![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg?logo=php)](https://www.php.net/)
+[![OXID](https://img.shields.io/badge/OXID-7.x-green.svg)](https://www.oxid-esales.com) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg?logo=php)](https://www.php.net/)
 ```
 
 ## Seiten-Struktur (Sektionen in dieser Reihenfolge)
@@ -44,7 +39,7 @@ innerhalb ihrer Seite. Eine Unterseite wird nur angelegt, wenn es dazu Inhalt gi
 Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentations-Tabelle auf dem Hub ersetzt.
 
 
-### 1. Titel + Badges + Sprachlink
+### 1. Titel + Badges (in einer Zeile)
 
 ### 2. Inhaltsverzeichnis (manuell)
 

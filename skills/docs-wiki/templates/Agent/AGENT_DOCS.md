@@ -14,8 +14,7 @@ Keine Badges fuer Agents/Skills (keine externen Repos).
 Falls doch ein Repo existiert:
 
 ```markdown
-[![GitHub](https://img.shields.io/badge/GitHub-{REPO_NAME}-blue?logo=github)](https://github.com/markus-michalski/{REPO_NAME})
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/markus-michalski/{REPO_NAME}/blob/main/LICENSE)
+[![GitHub](https://img.shields.io/badge/GitHub-{REPO_NAME}-blue?logo=github)](https://github.com/markus-michalski/{REPO_NAME}) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/markus-michalski/{REPO_NAME}/blob/main/LICENSE)
 ```
 
 ## Seiten-Struktur (Sektionen in dieser Reihenfolge)
@@ -37,7 +36,7 @@ innerhalb ihrer Seite. Eine Unterseite wird nur angelegt, wenn es dazu Inhalt gi
 Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentations-Tabelle auf dem Hub ersetzt.
 
 
-### 1. Titel + Sprachlink
+### 1. Titel
 
 ### 2. Inhaltsverzeichnis (manuell)
 

@@ -10,11 +10,7 @@
 ## Badge-Vorlage
 
 ```markdown
-[![GitHub](https://img.shields.io/badge/GitHub-osticket--{REPO_NAME}-blue?logo=github)](https://github.com/markus-michalski/osticket-{REPO_NAME})
-[![CI](https://github.com/markus-michalski/osticket-{REPO_NAME}/actions/workflows/ci.yml/badge.svg)](https://github.com/markus-michalski/osticket-{REPO_NAME}/actions)
-[![License](https://img.shields.io/badge/license-GPL%20v2-blue.svg)](https://github.com/markus-michalski/osticket-{REPO_NAME}/blob/main/LICENSE)
-[![osTicket](https://img.shields.io/badge/osTicket-1.18.x-green.svg)](https://osticket.com)
-[![PHP](https://img.shields.io/badge/PHP-8.1%2B-777BB4.svg?logo=php)](https://www.php.net/)
+[![GitHub](https://img.shields.io/badge/GitHub-osticket--{REPO_NAME}-blue?logo=github)](https://github.com/markus-michalski/osticket-{REPO_NAME}) [![CI](https://github.com/markus-michalski/osticket-{REPO_NAME}/actions/workflows/ci.yml/badge.svg)](https://github.com/markus-michalski/osticket-{REPO_NAME}/actions) [![License](https://img.shields.io/badge/license-GPL%20v2-blue.svg)](https://github.com/markus-michalski/osticket-{REPO_NAME}/blob/main/LICENSE) [![osTicket](https://img.shields.io/badge/osTicket-1.18.x-green.svg)](https://osticket.com) [![PHP](https://img.shields.io/badge/PHP-8.1%2B-777BB4.svg?logo=php)](https://www.php.net/)
 ```
 
 ## Seiten-Struktur (Sektionen in dieser Reihenfolge)
@@ -35,7 +31,7 @@ innerhalb ihrer Seite. Eine Unterseite wird nur angelegt, wenn es dazu Inhalt gi
 Sektion "Inhaltsverzeichnis (manuell)" entfaellt, sie wird durch die Dokumentations-Tabelle auf dem Hub ersetzt.
 
 
-### 1. Titel + Badges + Sprachlink
+### 1. Titel + Badges (in einer Zeile)
 
 ### 2. Inhaltsverzeichnis (manuell)
 

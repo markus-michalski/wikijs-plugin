@@ -27,14 +27,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for change on the Wiki.js version (255 characters at most), not only in the local DB.
 - `wikijs_delete_page` documents what actually happens: the page goes to the recycle bin and
   is restorable. The "irreversible" warning is gone from the tool text and the delete message.
+- `docs-wiki`: badges are written on one line, separated by spaces (separate source lines
+  render as separate lines because of the hard `<br>`).
 
 ### Deprecated
 - Nothing yet
 
 ### Removed
-- Nothing yet
+- `docs-wiki` no longer writes a manual language link (`[English Version](...)` /
+  `[Deutsche Version](...)`) into the page. The theme's global language switcher does that job,
+  which only needs both languages to share the same path. The lines were removed from the
+  existing pages as well.
 
 ### Fixed
+- `docs-wiki` rules said Wiki.js 3 no longer renders source line breaks as hard `<br>`. It still
+  does (checked with a freshly rendered page), so the 2.0.0 removal of the single-line callout
+  rule was wrong and the rule is back.
 - `wikijs_delete_page` failed with HTTP 400 ("Body cannot be empty") against Wiki.js 3:
   the client sent `Content-Type: application/json` on a request without a body. Found
   in the first live write test with a personal access token.
