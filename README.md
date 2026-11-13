@@ -6,7 +6,7 @@ Combines the previously separate [`wikijs-mcp-server`](https://github.com/markus
 
 ## Documentation
 
-**[Complete Documentation & FAQ](https://faq.markus-michalski.net/en/mcp/wikijs-plugin)**
+**[Complete Documentation & FAQ](https://faq.markus-michalski.net/plugins/wikijs-plugin)**
 
 ## Installation
 
@@ -118,7 +118,7 @@ Commercial use requires explicit permission; contact the maintainer.
 
 ## Links
 
-- [Full Documentation](https://faq.markus-michalski.net/en/mcp/wikijs-plugin) (English)
-- [Vollständige Dokumentation](https://faq.markus-michalski.net/de/mcp/wikijs-plugin) (Deutsch)
+- [Full Documentation](https://faq.markus-michalski.net/plugins/wikijs-plugin) (English)
+- [Vollständige Dokumentation](https://faq.markus-michalski.net/de-DE/plugins/wikijs-plugin) (Deutsch)
 - [Changelog](./CHANGELOG.md)
 - Original standalone TypeScript MCP server: [wikijs-mcp-server](https://github.com/markus-michalski/wikijs-mcp-server)
