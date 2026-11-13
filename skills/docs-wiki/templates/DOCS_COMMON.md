@@ -195,7 +195,7 @@ Update/Qualitaets-Upgrade (siehe "Bestehende Einzelseite umbauen").
 
 ### Hub-Inhalt (in dieser Reihenfolge)
 
-1. Link zur Kategorie-Seite, H1, Badges, "aktuelle Version"-Callout
+1. H1, Badges, "aktuelle Version"-Callout
 2. Ueberblick (was, fuer wen, Kern-Vorteil als Callout)
 3. Ein Mermaid-Uebersichtsdiagramm
 4. **Dokumentation**: Tabelle `Seite | Inhalt` mit Links auf alle Unterseiten (ersetzt das
@@ -221,15 +221,12 @@ inhaltlich benannte Unterseiten (z.B. `plugins/storyforge/writing-modes`) behalt
 
 ### Konventionen fuer jede Unterseite
 
-- Kopf: Link zurueck zum Hub, Leerzeile, H1
+- Kopf: direkt die H1, kein Rueck-Link und kein Sprachlink (Brotkrumen und Sprachumschalter des
+  Themes uebernehmen das)
 
   ```markdown
-  [Zurueck zur Uebersicht](/de-DE/{hub-pfad})
-
   # {Projekt}: {Thema}
   ```
-
-  EN: `[Back to overview](/{hub-pfad})`
 - Titel: `{Projekt}: {Thema}` (z.B. "ALTCHA: Konfiguration")
 - Eigene Description (max 250 Zeichen), die zum Thema der Unterseite passt, nicht die Hub-Description
 - Tags wie beim Hub
@@ -241,25 +238,23 @@ inhaltlich benannte Unterseiten (z.B. `plugins/storyforge/writing-modes`) behalt
 - Callouts, Tabs, Troubleshooting-Pattern und alle anderen Regeln dieser Datei gelten
   unveraendert pro Seite
 
-### Link zur Elternseite - PFLICHT
+### Navigation nach oben: Brotkrumen - PFLICHT-VORAUSSETZUNG
 
-Jede Seite verlinkt auf ihre Elternseite, damit Leser nie in einer Sackgasse landen und zwischen
-Kategorien wechseln koennen:
+Den Weg zurueck (Unterseite → Hub → Kategorie → Home) zeigen die **Brotkrumen des Themes**, sie
+werden aus dem Seitenpfad gebaut. Deshalb steht **kein manueller Rueck-Link** (`[Back to overview]`,
+`[Zurueck zur Uebersicht]`, `[Alle OXID 7 Plugins]`, `[← Zur Hauptuebersicht]`) mehr im
+Seiteninhalt. Eine Zeile, die auf eine uebergeordnete Seite zeigt, wird nicht geschrieben.
 
-| Seite | Link fuehrt zu | Beispiel |
-|-------|----------------|----------|
-| Unterseite | Hub | `[Zurueck zur Uebersicht](/de-DE/oxid7/sitemap)` |
-| Hub | Kategorie-Seite | `[Alle OXID 7 Plugins](/de-DE/oxid7)` |
-| Kategorie-Seite | Home | `[← Zur Hauptuebersicht](/de-DE/home)` |
+Damit die Brotkrumen funktionieren, muss die **Pfad-Hierarchie vollstaendig** sein: jede Ebene
+eines Pfads existiert als Seite, in beiden Sprachen. Fuer `oxid7/altcha-integration/api` heisst
+das, dass `oxid7` (Kategorie-Seite) und `oxid7/altcha-integration` (Hub) vorhanden sind. Beim
+Anlegen eines neuen Projekts also pruefen, ob die Kategorie-Seite existiert, und sie sonst
+mit anlegen.
 
-- Der Link steht ganz oben auf der Seite (Markdown) bzw. im Hero-Bereich unter dem Untertitel
-  (HTML-Kategorie-Seiten, helle Linkfarbe wegen dunklem Hintergrund)
-- Absoluter Wiki-Pfad, wie bei allen Links (`/de-DE/...`, Englisch ohne Praefix)
-- EN-Pendants: `Back to overview`, `All OXID 7 Plugins`, `Back to main overview`
-- Fehlt die direkte Elternseite (z.B. keine Kategorie-Seite), gilt die naechsthoehere vorhandene
-  Seite, sonst Home
-- Beim Anlegen einer neuen Seite wird der Link gleich mit gesetzt, bei Update oder Upgrade einer
-  Bestandsseite ohne Link wird er nachgezogen
+- Kategorie-Seiten im HTML-Hero-Layout behalten ihren Link zur Hauptuebersicht im Hero-Bereich
+  (helle Linkfarbe wegen dunklem Hintergrund), sie haben keine Brotkrumen-Zeile
+- Inhaltliche Links auf andere Seiten (Geschwister, "siehe auch") bleiben erlaubt, nur der
+  Link auf eine **uebergeordnete** Seite entfaellt
 
 ### Kategorie-Seite (Karten-Uebersicht)
 
@@ -608,10 +603,10 @@ Vor dem Erstellen/Updaten ALLE Punkte pruefen:
 - [ ] `/wikijs-plugin:translation-check` über DE- und EN-Content durchgelaufen (DE ist hartes Gate, EN höchstens WARN)
 - [ ] Translation-Check: PASS, oder WARN mit User-Entscheidung — bei FAIL nicht publizieren
 - [ ] Hub + Unterseiten statt Einzelseite; Hub ist eine kurze Startseite mit Dokumentations-Tabelle
-- [ ] Jede Unterseite hat Link zurueck zum Hub, eigene Description und `{Projekt}: {Thema}`-Titel
+- [ ] Jede Unterseite hat eigene Description und `{Projekt}: {Thema}`-Titel
 - [ ] Beim Umbau: jeder Abschnitt der alten Seite steht auf genau einer neuen Seite (nichts verloren)
 - [ ] Kategorie-Karte verlinkt auf die Unterseiten
-- [ ] Jede Seite verlinkt auf ihre Elternseite (Unterseite → Hub, Hub → Kategorie, Kategorie → Home)
+- [ ] Kein manueller Rueck-Link auf eine uebergeordnete Seite, die Pfad-Hierarchie ist vollstaendig (Kategorie-Seite und Hub existieren)
 - [ ] Hub und `technical` haben je mindestens 1 Mermaid-Diagramm
 - [ ] Callout Boxes fuer Warnungen/Tipps (`.is-warning`, `.is-info`, `.is-danger`, `.is-success`)
 - [ ] Keine "(ab vX.Y.Z)"-Versionszusaetze im Fliesstext — stattdessen "aktuelle Version"-Hinweis am Seitenanfang

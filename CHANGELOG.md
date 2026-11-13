@@ -38,6 +38,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `[Deutsche Version](...)`) into the page. The theme's global language switcher does that job,
   which only needs both languages to share the same path. The lines were removed from the
   existing pages as well.
+- `docs-wiki` no longer writes a manual link to the parent page (`[Back to overview]`,
+  `[All OXID 7 Plugins]`, ...). The theme's breadcrumbs, built from the page path, show that
+  way back; the rule now requires a complete path hierarchy (category page and hub exist). The
+  lines were removed from the existing pages as well, as was the old `[English version]` link on
+  the German `mcp/wikijs` pages.
 
 ### Fixed
 - `docs-wiki` rules said Wiki.js 3 no longer renders source line breaks as hard `<br>`. It still
