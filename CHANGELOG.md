@@ -10,10 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing yet
+- `wikijs_list_tags` takes `limit` (default 50) and `query` (case-insensitive substring) and
+  reports `total`. A wiki can carry hundreds of tags; returning all of them filled the context.
 
 ### Changed
-- Nothing yet
+- Write results are compact: `wikijs_update_page`, `wikijs_move_page` and `wikijs_restore_page`
+  return only id, path, title, locale, publishState and updatedAt of the page. Wiki.js answers
+  with the whole page (render, table of contents, settings), which was echoed back to the caller.
 
 ### Deprecated
 - Nothing yet
@@ -22,7 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nothing yet
 
 ### Fixed
-- Nothing yet
+- `wikijs_restore_page` brought a page back with an empty render (blank to readers and invisible
+  to search). It now queues a render like create and update do, and reports `renderQueued` /
+  `renderWarning`.
 
 ### Security
 - Nothing yet

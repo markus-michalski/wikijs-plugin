@@ -661,3 +661,73 @@ class TestRenderAfterWrite:
         result = pages.render_page(client, path="test/page", locale="en")
         client.render_page.assert_called_once_with(PID)
         assert result["pageId"] == PID
+
+
+BIG_PAGE = {
+    "id": PID, "path": "test/page", "title": "T", "locale": "en", "publishState": "draft",
+    "updatedAt": "2026-11-13T16:44:40.072Z", "render": "<p>" + "x" * 5000 + "</p>",
+    "toc": [{"key": "a"}], "authorId": "u", "navigationId": "n", "scriptJsLoad": "",
+}
+
+
+class TestCompactResults:
+    """The Wiki.js response carries the whole page (render, toc, ...). Echoing it back
+    to the model wastes context, so write results carry a short summary only."""
+
+    def test_update_result_is_compact(self):
+        client = make_client()
+        client.update_page.return_value = {"ok": True, "message": "Page updated successfully.", "page": BIG_PAGE}
+        result = pages.update_page(client, page_id=PID, title="T")
+        assert result["result"]["page"] == {
+            "id": PID, "path": "test/page", "title": "T", "locale": "en",
+            "publishState": "draft", "updatedAt": "2026-11-13T16:44:40.072Z",
+        }
+        assert "render" not in str(result)
+
+    def test_move_result_is_compact(self):
+        client = make_client()
+        client.move_page.return_value = {"ok": True, "message": "moved", "page": BIG_PAGE}
+        result = pages.move_page(client, page_id=PID, destination_path="new/path")
+        assert result["result"]["page"]["id"] == PID
+        assert "render" not in str(result)
+
+    def test_restore_result_is_compact_and_queues_a_render(self):
+        client = make_client()
+        client.restore_page.return_value = {"ok": True, "page": {**BIG_PAGE, "render": ""}}
+        result = pages.restore_page(client, page_id=PID, version_id="v9")
+        client.render_page.assert_called_once_with(PID)
+        assert result["renderQueued"] is True
+        assert result["page"]["id"] == PID
+        assert "toc" not in result["page"]
+
+    def test_restore_render_failure_is_a_warning(self):
+        from tools.client import WikiJsError
+        client = make_client()
+        client.restore_page.return_value = {"ok": True, "page": BIG_PAGE}
+        client.render_page.side_effect = WikiJsError("Wiki.js API error (HTTP 503): no Puppeteer")
+        result = pages.restore_page(client, page_id=PID, version_id="v9")
+        assert result["renderQueued"] is False
+        assert "wikijs_render_page" in result["renderWarning"]
+
+
+class TestListTagsFilter:
+    TAGS = [{"tag": "sylius", "usageCount": 9}, {"tag": "shopware6", "usageCount": 8},
+            {"tag": "sylius-plugin", "usageCount": 2}, {"tag": "oxid", "usageCount": 1}]
+
+    def test_limit_caps_the_result_but_reports_the_total(self):
+        client = make_client()
+        client.list_tags.return_value = self.TAGS
+        result = pages.list_tags(client, limit=2)
+        assert [t["tag"] for t in result["tags"]] == ["sylius", "shopware6"]
+        assert result["total"] == 4
+
+    def test_query_filters_case_insensitively(self):
+        client = make_client()
+        client.list_tags.return_value = self.TAGS
+        result = pages.list_tags(client, query="SYLIUS")
+        assert [t["tag"] for t in result["tags"]] == ["sylius", "sylius-plugin"]
+        assert result["total"] == 2
+
+    def test_limit_is_validated(self):
+        with pytest.raises(ValueError):
+            pages.list_tags(make_client(), limit=0)
