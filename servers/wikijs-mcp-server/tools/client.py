@@ -217,21 +217,21 @@ class WikiJsClient:
         editor: str,
         is_published: bool,
         tags: list[str],
+        reason: str | None = None,
     ) -> dict[str, Any]:
-        data = self._request(
-            "POST",
-            self._pages_path(),
-            json={
-                "path": path,
-                "title": title,
-                "content": content,
-                "description": description,
-                "locale": locale,
-                "editor": editor,
-                "publishState": self._publish_state(is_published),
-                "tags": tags,
-            },
-        )
+        body: dict[str, Any] = {
+            "path": path,
+            "title": title,
+            "content": content,
+            "description": description,
+            "locale": locale,
+            "editor": editor,
+            "publishState": self._publish_state(is_published),
+            "tags": tags,
+        }
+        if reason:
+            body["reasonForChange"] = reason
+        data = self._request("POST", self._pages_path(), json=body)
         return data["page"]
 
     def update_page(
@@ -243,8 +243,13 @@ class WikiJsClient:
         description: str | None = None,
         is_published: bool | None = None,
         tags: list[str] | None = None,
+        reason: str | None = None,
     ) -> dict[str, Any]:
-        """Partial update (PATCH): only the fields passed are sent and changed."""
+        """Partial update (PATCH): only the fields passed are sent and changed.
+
+        `reason` is recorded on the page version this save produces; it is not a
+        change by itself.
+        """
         body: dict[str, Any] = {}
         if content is not None:
             body["content"] = content
@@ -258,19 +263,67 @@ class WikiJsClient:
             body["tags"] = tags
         if not body:
             raise WikiJsError("Nothing to update: pass at least one field to change.")
+        if reason:
+            body["reasonForChange"] = reason
         return self._request("PATCH", self._pages_path(f"/{page_id}"), json=body)
 
     def delete_page(self, page_id: str) -> dict[str, Any]:
         return self._request("DELETE", self._pages_path(f"/{page_id}"))
 
     def move_page(
-        self, page_id: str, destination_path: str, destination_locale: str = "en"
+        self,
+        page_id: str,
+        destination_path: str,
+        destination_locale: str = "en",
+        update_links: bool = False,
     ) -> dict[str, Any]:
-        return self._request(
-            "PUT",
-            self._pages_path(f"/{page_id}/path"),
-            json={"path": destination_path, "locale": destination_locale},
-        )
+        body: dict[str, Any] = {"path": destination_path, "locale": destination_locale}
+        if update_links:
+            body["updateLinks"] = True
+        return self._request("PUT", self._pages_path(f"/{page_id}/path"), json=body)
+
+    # ------------------------------------------------------------------
+    # Versions, recycle bin, tags
+    # ------------------------------------------------------------------
+
+    def list_versions(self, page_id: str) -> list[dict[str, Any]]:
+        """The page's version history, newest first."""
+        data = self._request("GET", self._pages_path(f"/{page_id}/history"))
+        entries: list[dict[str, Any]] = data if isinstance(data, list) else []
+        return sorted(entries, key=lambda e: e.get("versionDate") or "", reverse=True)
+
+    def get_version(self, page_id: str, version_id: str) -> dict[str, Any] | None:
+        response = self._send("GET", self._pages_path(f"/{page_id}/history/{version_id}"))
+        if response.status_code == 404:
+            return None
+        return self._truncate_content(response.json())
+
+    def list_deleted(self, locale: str) -> list[dict[str, Any]]:
+        data = self._request("GET", self._pages_path("/deleted"), params={"locale": locale})
+        return data if isinstance(data, list) else []
+
+    def restore_page(
+        self,
+        page_id: str,
+        version_id: str,
+        *,
+        path: str | None = None,
+        locale: str | None = None,
+        title: str | None = None,
+    ) -> dict[str, Any]:
+        """Bring a deleted page back from the recycle bin (optionally under a new path)."""
+        body: dict[str, Any] = {"versionId": version_id}
+        if path is not None:
+            body["path"] = path
+        if locale is not None:
+            body["locale"] = locale
+        if title is not None:
+            body["title"] = title
+        return self._request("POST", self._pages_path(f"/{page_id}/restore"), json=body)
+
+    def list_tags(self) -> list[dict[str, Any]]:
+        data = self._request("GET", f"/sites/{self.site_id}/tags")
+        return data if isinstance(data, list) else []
 
     # ------------------------------------------------------------------
     # Helpers

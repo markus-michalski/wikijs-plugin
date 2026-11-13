@@ -19,7 +19,30 @@ from .validation import (
     validate_path,
     validate_tags,
     validate_title,
+    validate_version_id,
 )
+
+# Wiki.js stores the reason for a change on the version; 255 characters at most.
+_MAX_REASON_LENGTH = 255
+
+
+def _reason(summary: str) -> str | None:
+    """The caller's one-line summary, as the version's reason for change."""
+    return summary.strip()[:_MAX_REASON_LENGTH] or None
+
+
+def _resolve_page_id(
+    client: WikiJsClient, page_id: str | None, path: str | None, locale: str
+) -> str:
+    """The page ID from an explicit ID, or looked up by path + locale."""
+    if page_id is not None:
+        return validate_page_id(page_id)
+    if path is None:
+        raise ValueError('Either "id" or "path" must be provided')
+    page = client.get_page_by_path(validate_path(path), validate_locale(locale))
+    if not page:
+        raise ValueError(f"Page not found at path: {path}")
+    return page["id"]
 
 
 def _log_history_safely(
@@ -112,6 +135,7 @@ def create_page(
         editor=editor,
         is_published=is_published,
         tags=tags,
+        reason=_reason(summary),
     )
 
     _log_history_safely(page_path=path, locale=locale, source_repo=source_repo, source_ref=source_ref, summary=summary)
@@ -313,6 +337,7 @@ def update_page(
         description=description,
         is_published=is_published,
         tags=tags,
+        reason=_reason(summary),
     )
 
     _log_update_history_safely(
@@ -418,7 +443,10 @@ def delete_page(
         page_id = page["id"]
 
     result = client.delete_page(page_id)
-    return {"message": f"Page {page_id} deleted permanently", "result": result}
+    return {
+        "message": f"Page {page_id} deleted (moved to the recycle bin; wikijs_restore_page brings it back)",
+        "result": result,
+    }
 
 
 def move_page(
@@ -429,6 +457,7 @@ def move_page(
     locale: str = "en",
     destination_path: str,
     destination_locale: str = "en",
+    update_links: bool = False,
 ) -> dict[str, Any]:
     locale = validate_locale(locale)
     destination_locale = validate_locale(destination_locale)
@@ -447,7 +476,7 @@ def move_page(
             raise ValueError(f"Page not found at path: {source_path}")
         page_id = page["id"]
 
-    result = client.move_page(page_id, destination_path, destination_locale)
+    result = client.move_page(page_id, destination_path, destination_locale, update_links=update_links)
     return {
         "message": "Page moved successfully",
         "from": source_path or f"ID: {page_id}",
@@ -455,3 +484,114 @@ def move_page(
         "destinationLocale": destination_locale,
         "result": result,
     }
+
+
+def _author_name(entry: dict[str, Any]) -> str:
+    return (entry.get("author") or {}).get("name") or ""
+
+
+def _version_summary(entry: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": entry["id"],
+        "action": entry.get("action"),
+        "versionDate": entry.get("versionDate"),
+        "changedFields": entry.get("changedFields") or [],
+        "reason": entry.get("reason") or "",
+        "author": _author_name(entry),
+        "path": entry.get("path"),
+        "title": entry.get("title"),
+        "via": entry.get("via"),
+    }
+
+
+def list_page_versions(
+    client: WikiJsClient,
+    *,
+    page_id: str | None = None,
+    path: str | None = None,
+    locale: str = "en",
+    limit: int = 20,
+) -> dict[str, Any]:
+    """Wiki.js's own version history of a page, newest first (not the local page_history DB)."""
+    if not (1 <= limit <= MAX_PAGE_LIMIT):
+        raise ValueError(f"limit must be between 1 and {MAX_PAGE_LIMIT}")
+    resolved_id = _resolve_page_id(client, page_id, path, locale)
+    versions = client.list_versions(resolved_id)
+    return {
+        "pageId": resolved_id,
+        "total": len(versions),
+        "versions": [_version_summary(v) for v in versions[:limit]],
+    }
+
+
+def get_page_version(
+    client: WikiJsClient,
+    *,
+    version_id: str,
+    page_id: str | None = None,
+    path: str | None = None,
+    locale: str = "en",
+) -> dict[str, Any]:
+    """One past version with its content, e.g. to roll a page back via update_page."""
+    version_id = validate_version_id(version_id)
+    resolved_id = _resolve_page_id(client, page_id, path, locale)
+    version = client.get_version(resolved_id, version_id)
+    if not version:
+        raise ValueError(f"Version not found: {version_id}")
+    meta = version.get("meta") or {}
+    return {
+        **_version_summary(version),
+        "content": version.get("content"),
+        "description": meta.get("description"),
+        "tags": meta.get("tags") or [],
+        "publishState": meta.get("publishState"),
+    }
+
+
+def list_deleted_pages(client: WikiJsClient, *, locale: str = "en") -> dict[str, Any]:
+    """Pages in the recycle bin for one locale."""
+    locale = validate_locale(locale)
+    deleted = client.list_deleted(locale)
+    return {
+        "pages": [
+            {
+                "pageId": d["pageId"],
+                "versionId": d["versionId"],
+                "path": d.get("path"),
+                "title": d.get("title"),
+                "locale": d.get("locale"),
+                "deletedAt": d.get("deletedAt"),
+                "deletedBy": (d.get("deletedBy") or {}).get("name") or "",
+            }
+            for d in deleted
+        ]
+    }
+
+
+def restore_page(
+    client: WikiJsClient,
+    *,
+    page_id: str,
+    version_id: str,
+    path: str | None = None,
+    locale: str | None = None,
+    title: str | None = None,
+) -> dict[str, Any]:
+    """Bring a deleted page back (pageId and versionId come from list_deleted_pages)."""
+    page_id = validate_page_id(page_id)
+    version_id = validate_version_id(version_id)
+    if path is not None:
+        path = validate_path(path)
+    if locale is not None:
+        locale = validate_locale(locale)
+    if title is not None:
+        title = validate_title(title)
+    result = client.restore_page(page_id, version_id, path=path, locale=locale, title=title)
+    page = result.get("page") or {}
+    return {"message": f"Page {page_id} restored from the recycle bin", "page": page}
+
+
+def list_tags(client: WikiJsClient) -> dict[str, Any]:
+    """Tags in use on the site, most used first — reuse these instead of inventing variants."""
+    tags = client.list_tags()
+    return {"tags": sorted(tags, key=lambda t: t.get("usageCount", 0), reverse=True)}

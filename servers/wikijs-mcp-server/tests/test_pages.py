@@ -56,6 +56,7 @@ class TestUpdatePagePartial:
             description=None,
             is_published=True,
             tags=None,
+            reason=None,
         )
 
     def test_title_only_update(self):
@@ -283,7 +284,7 @@ class TestMovePage:
         client.move_page.return_value = {"succeeded": True, "errorCode": 0, "message": "ok"}
         result = pages.move_page(client, page_id=PID, destination_path="new/path")
         assert result["to"] == "new/path"
-        client.move_page.assert_called_with(PID, "new/path", "en")
+        client.move_page.assert_called_with(PID, "new/path", "en", update_links=False)
 
     def test_raises_when_neither_id_nor_path(self):
         client = make_client()
@@ -440,3 +441,126 @@ class TestGetPageHistoryTool:
         history.log_page_change(page_path="docs/v1.2", locale="en", source_ref="abc123")
         result = pages.get_page_history(path="docs/v1.2")
         assert [e["source_ref"] for e in result["entries"]] == ["abc123"]
+
+
+class TestReasonForChange:
+    def test_create_passes_summary_as_reason(self):
+        client = make_client()
+        client.create_page.return_value = {"id": NEW_PID, "path": "new/page", "title": "New"}
+        pages.create_page(client, path="new/page", title="New", content="c", description="d", summary="Initial docs")
+        assert client.create_page.call_args.kwargs["reason"] == "Initial docs"
+
+    def test_update_passes_summary_as_reason(self):
+        client = make_client()
+        pages.update_page(client, page_id=PID, title="T", summary="Fix typo")
+        assert client.update_page.call_args.kwargs["reason"] == "Fix typo"
+
+    def test_reason_is_capped_at_wiki_limit(self):
+        client = make_client()
+        pages.update_page(client, page_id=PID, title="T", summary="x" * 400)
+        assert len(client.update_page.call_args.kwargs["reason"]) == 255
+
+    def test_empty_summary_sends_no_reason(self):
+        client = make_client()
+        pages.update_page(client, page_id=PID, title="T")
+        assert client.update_page.call_args.kwargs["reason"] is None
+
+
+class TestMoveUpdateLinks:
+    def test_update_links_is_passed_through(self):
+        client = make_client()
+        pages.move_page(client, page_id=PID, destination_path="new/path", update_links=True)
+        client.move_page.assert_called_with(PID, "new/path", "en", update_links=True)
+
+    def test_update_links_defaults_to_false(self):
+        client = make_client()
+        pages.move_page(client, page_id=PID, destination_path="new/path")
+        client.move_page.assert_called_with(PID, "new/path", "en", update_links=False)
+
+
+class TestVersionTools:
+    def _versions(self, n=3):
+        return [{"id": f"v{i}", "action": "updated", "versionDate": f"2026-11-0{i}T10:00:00.000Z",
+                 "changedFields": ["content"], "reason": "r", "path": "test/page", "title": "T",
+                 "author": {"id": "u", "name": "Admin", "email": "a@b"}, "via": None}
+                for i in range(n, 0, -1)]
+
+    def test_list_versions_by_id_limits_and_trims_fields(self):
+        client = make_client()
+        client.list_versions.return_value = self._versions(3)
+        result = pages.list_page_versions(client, page_id=PID, limit=2)
+        client.list_versions.assert_called_with(PID)
+        assert [v["id"] for v in result["versions"]] == ["v3", "v2"]
+        assert result["total"] == 3
+        assert result["versions"][0]["author"] == "Admin"
+        assert "email" not in str(result)
+
+    def test_list_versions_by_path_resolves_id(self):
+        client = make_client()
+        client.list_versions.return_value = self._versions(1)
+        pages.list_page_versions(client, path="test/page", locale="en")
+        client.get_page_by_path.assert_called_with("test/page", "en")
+        client.list_versions.assert_called_with(PID)
+
+    def test_list_versions_requires_id_or_path(self):
+        with pytest.raises(ValueError, match="id.*path|path.*id"):
+            pages.list_page_versions(make_client())
+
+    def test_get_version_returns_content(self):
+        client = make_client()
+        client.get_version.return_value = {"id": "v1", "content": "# Old", "action": "updated",
+                                           "versionDate": "d", "reason": "", "path": "p", "title": "T",
+                                           "author": {"name": "Admin"}, "meta": {"tags": ["a"]}}
+        result = pages.get_page_version(client, page_id=PID, version_id="v1")
+        assert result["content"] == "# Old"
+        assert result["tags"] == ["a"]
+
+    def test_get_version_not_found(self):
+        client = make_client()
+        client.get_version.return_value = None
+        with pytest.raises(ValueError, match="not found"):
+            pages.get_page_version(client, page_id=PID, version_id="nope")
+
+    def test_version_id_is_validated(self):
+        with pytest.raises(ValueError):
+            pages.get_page_version(make_client(), page_id=PID, version_id="../x")
+
+
+class TestRecycleBinTools:
+    def test_list_deleted(self):
+        client = make_client()
+        client.list_deleted.return_value = [
+            {"pageId": PID, "versionId": "v9", "path": "a", "title": "A", "locale": "en",
+             "deletedAt": "2026-11-13T15:30:00Z", "deletedBy": {"id": "u", "name": "Admin"}, "editor": "markdown"},
+        ]
+        result = pages.list_deleted_pages(client, locale="en")
+        client.list_deleted.assert_called_with("en")
+        assert result["pages"][0] == {
+            "pageId": PID, "versionId": "v9", "path": "a", "title": "A", "locale": "en",
+            "deletedAt": "2026-11-13T15:30:00Z", "deletedBy": "Admin",
+        }
+
+    def test_restore_page(self):
+        client = make_client()
+        client.restore_page.return_value = {"ok": True, "page": {"id": PID, "path": "a", "title": "A"}}
+        result = pages.restore_page(client, page_id=PID, version_id="v9")
+        client.restore_page.assert_called_with(PID, "v9", path=None, locale=None, title=None)
+        assert result["page"]["id"] == PID
+
+    def test_restore_validates_destination_path(self):
+        with pytest.raises(ValueError):
+            pages.restore_page(make_client(), page_id=PID, version_id="v9", path="../bad")
+
+    def test_delete_message_mentions_recycle_bin(self):
+        client = make_client()
+        client.delete_page.return_value = {"ok": True}
+        result = pages.delete_page(client, page_id=PID)
+        assert "recycle bin" in result["message"]
+
+
+class TestListTags:
+    def test_returns_tags_sorted_by_usage(self):
+        client = make_client()
+        client.list_tags.return_value = [{"tag": "b", "usageCount": 2}, {"tag": "a", "usageCount": 9}]
+        result = pages.list_tags(client)
+        assert [t["tag"] for t in result["tags"]] == ["a", "b"]

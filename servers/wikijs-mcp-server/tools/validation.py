@@ -28,6 +28,7 @@ _LOCALE_RE = re.compile(r"^[a-z]{2}(-[A-Z]{2})?$")
 _PAGE_ID_RE = re.compile(
     r"^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[0-9a-f]{8,32})\Z"
 )
+_VERSION_ID_RE = re.compile(r"^[A-Za-z0-9-]{1,64}\Z")
 _EDITOR_RE = re.compile(r"^[a-z][a-z0-9-]{0,63}\Z")
 _PATH_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9\-_/]*[a-zA-Z0-9]$|^[a-zA-Z0-9]$")
 
@@ -74,6 +75,13 @@ def validate_page_id(page_id: str) -> str:
     if not isinstance(page_id, str) or not _PAGE_ID_RE.match(page_id):
         raise ValueError("Page ID must be a UUID (e.g. 309a0d75-e06d-4ab3-a8cf-9dae8f27c85a)")
     return page_id
+
+
+def validate_version_id(version_id: str) -> str:
+    """Validate a page version ID (a UUID as Wiki.js hands it out)."""
+    if not isinstance(version_id, str) or not _VERSION_ID_RE.match(version_id):
+        raise ValueError("Version ID must be the ID of a page version (letters, digits and hyphens)")
+    return version_id
 
 
 def validate_editor(editor: str) -> str:

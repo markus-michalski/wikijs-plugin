@@ -376,3 +376,91 @@ class TestMovePage:
         client, _ = make_client({self.route: httpx.Response(409, json={"message": "conflict"})})
         with pytest.raises(WikiJsError, match="conflict"):
             client.move_page(PAGE_ID, "new/path", "en")
+
+
+class TestVersions:
+    history = f"GET /_api/sites/{SITE_ID}/pages/{PAGE_ID}/history"
+
+    def test_list_versions_newest_first(self):
+        entries = [
+            {"id": "v1", "action": "created", "versionDate": "2026-11-01T10:00:00.000Z"},
+            {"id": "v3", "action": "updated", "versionDate": "2026-11-03T10:00:00.000Z"},
+            {"id": "v2", "action": "updated", "versionDate": "2026-11-02T10:00:00.000Z"},
+        ]
+        client, _ = make_client({self.history: entries})
+        assert [v["id"] for v in client.list_versions(PAGE_ID)] == ["v3", "v2", "v1"]
+
+    def test_get_version_returns_content_truncated(self):
+        long_content = "x" * (CHARACTER_LIMIT + 10)
+        route = f"{self.history}/v1"
+        client, _ = make_client({route: {"id": "v1", "content": long_content}})
+        version = client.get_version(PAGE_ID, "v1")
+        assert "truncated" in version["content"]
+
+    def test_get_version_returns_none_on_404(self):
+        client, _ = make_client()
+        assert client.get_version(PAGE_ID, "missing") is None
+
+
+class TestRecycleBin:
+    def test_list_deleted_passes_locale(self):
+        route = f"GET /_api/sites/{SITE_ID}/pages/deleted"
+        client, rec = make_client({route: [{"pageId": PAGE_ID, "versionId": "v9", "path": "a"}]})
+        result = client.list_deleted("de-DE")
+        assert result[0]["versionId"] == "v9"
+        assert rec.calls(route)[0].url.params["locale"] == "de-DE"
+
+    def test_restore_page_posts_version_id_only_by_default(self):
+        route = f"POST /_api/sites/{SITE_ID}/pages/{PAGE_ID}/restore"
+        client, rec = make_client({route: {"ok": True, "page": {"id": PAGE_ID}}})
+        client.restore_page(PAGE_ID, "v9")
+        assert body_of(rec.calls(route)[0]) == {"versionId": "v9"}
+
+    def test_restore_page_optional_destination(self):
+        route = f"POST /_api/sites/{SITE_ID}/pages/{PAGE_ID}/restore"
+        client, rec = make_client({route: {"ok": True, "page": {"id": PAGE_ID}}})
+        client.restore_page(PAGE_ID, "v9", path="new/path", locale="en", title="T")
+        assert body_of(rec.calls(route)[0]) == {
+            "versionId": "v9", "path": "new/path", "locale": "en", "title": "T",
+        }
+
+
+class TestReasonAndLinks:
+    def test_create_sends_reason_for_change(self):
+        route = f"POST /_api/sites/{SITE_ID}/pages"
+        client, rec = make_client({route: {"ok": True, "page": {"id": PAGE_ID, "path": "x", "title": "X"}}})
+        client.create_page(path="x", title="X", content="c", description="d", locale="en",
+                           editor="markdown", is_published=False, tags=[], reason="Initial docs")
+        assert body_of(rec.calls(route)[0])["reasonForChange"] == "Initial docs"
+
+    def test_create_omits_reason_when_empty(self):
+        route = f"POST /_api/sites/{SITE_ID}/pages"
+        client, rec = make_client({route: {"ok": True, "page": {"id": PAGE_ID, "path": "x", "title": "X"}}})
+        client.create_page(path="x", title="X", content="c", description="d", locale="en",
+                           editor="markdown", is_published=False, tags=[])
+        assert "reasonForChange" not in body_of(rec.calls(route)[0])
+
+    def test_update_sends_reason_for_change(self):
+        route = f"PATCH /_api/sites/{SITE_ID}/pages/{PAGE_ID}"
+        client, rec = make_client({route: {"ok": True, "page": {"id": PAGE_ID}}})
+        client.update_page(page_id=PAGE_ID, title="t", reason="Fix typo")
+        assert body_of(rec.calls(route)[0]) == {"title": "t", "reasonForChange": "Fix typo"}
+
+    def test_reason_alone_is_not_an_update(self):
+        client, rec = make_client()
+        with pytest.raises(WikiJsError, match="Nothing to update"):
+            client.update_page(page_id=PAGE_ID, reason="why")
+        assert rec.requests == []
+
+    def test_move_sends_update_links_only_when_requested(self):
+        route = f"PUT /_api/sites/{SITE_ID}/pages/{PAGE_ID}/path"
+        client, rec = make_client({route: {"ok": True, "page": {"id": PAGE_ID}}})
+        client.move_page(PAGE_ID, "new/path", "en", update_links=True)
+        assert body_of(rec.calls(route)[0]) == {"path": "new/path", "locale": "en", "updateLinks": True}
+
+
+class TestTags:
+    def test_list_tags(self):
+        route = f"GET /_api/sites/{SITE_ID}/tags"
+        client, _ = make_client({route: [{"tag": "sylius", "usageCount": 324}]})
+        assert client.list_tags() == [{"tag": "sylius", "usageCount": 324}]
