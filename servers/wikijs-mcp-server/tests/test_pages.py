@@ -57,6 +57,7 @@ class TestUpdatePagePartial:
             is_published=True,
             tags=None,
             reason=None,
+            locale_relations=None,
         )
 
     def test_title_only_update(self):
@@ -564,3 +565,54 @@ class TestListTags:
         client.list_tags.return_value = [{"tag": "b", "usageCount": 2}, {"tag": "a", "usageCount": 9}]
         result = pages.list_tags(client)
         assert [t["tag"] for t in result["tags"]] == ["a", "b"]
+
+
+class TestLocaleRelationsTools:
+    rel = [{"locale": "en", "path": "mcp/x"}]
+
+    def test_create_passes_relations(self):
+        client = make_client()
+        client.create_page.return_value = {"id": NEW_PID, "path": "mcp/x", "title": "T"}
+        pages.create_page(client, path="mcp/x", title="T", content="c", description="d",
+                          locale="de-DE", locale_relations=self.rel)
+        assert client.create_page.call_args.kwargs["locale_relations"] == self.rel
+
+    def test_create_without_relations_passes_none(self):
+        client = make_client()
+        client.create_page.return_value = {"id": NEW_PID, "path": "p", "title": "T"}
+        pages.create_page(client, path="p", title="T", content="c", description="d")
+        assert client.create_page.call_args.kwargs["locale_relations"] is None
+
+    def test_update_passes_relations_without_fetching(self):
+        client = make_client()
+        pages.update_page(client, page_id=PID, locale_relations=self.rel)
+        client.get_page_by_id.assert_not_called()
+        assert client.update_page.call_args.kwargs["locale_relations"] == self.rel
+
+    def test_empty_list_unlinks(self):
+        client = make_client()
+        pages.update_page(client, page_id=PID, locale_relations=[])
+        assert client.update_page.call_args.kwargs["locale_relations"] == []
+
+    @pytest.mark.parametrize("bad", [
+        [{"locale": "EN", "path": "a"}],
+        [{"locale": "en", "path": "../a"}],
+        [{"locale": "en"}],
+        [{"locale": "en", "path": "a", "extra": "x"}],
+        ["en"],
+        [{"locale": "en", "path": "a"}] * 11,
+    ])
+    def test_invalid_relations_are_rejected(self, bad):
+        client = make_client()
+        with pytest.raises(ValueError):
+            pages.update_page(client, page_id=PID, locale_relations=bad)
+        client.update_page.assert_not_called()
+
+    def test_get_page_returns_relations_and_publish_state(self):
+        client = make_client(get_page_by_id=MagicMock(return_value={
+            "id": PID, "path": "p", "title": "T", "locale": "en", "publishState": "draft",
+            "isPublished": False, "localeRelations": [{"locale": "de-DE", "path": "p", "title": "T"}],
+        }))
+        result = pages.get_page(client, page_id=PID)
+        assert result["localeRelations"] == [{"locale": "de-DE", "path": "p", "title": "T"}]
+        assert result["publishState"] == "draft"

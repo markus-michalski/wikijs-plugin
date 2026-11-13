@@ -52,6 +52,7 @@ def wikijs_create_page(
     sourceRepo: str = "",
     sourceRef: str = "",
     summary: str = "",
+    localeRelations: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     """Create a new page in Wiki.js with markdown or HTML content.
 
@@ -74,6 +75,11 @@ def wikijs_create_page(
             Same DB-only logging as sourceRepo.
         summary: Optional one-line summary of what changed. Logged to the local
             DB and also stored as the reason for change on the Wiki.js version.
+        localeRelations: The page's translations, e.g.
+            [{"locale": "en", "path": "mcp/wikijs-plugin"}]. Links this page to the
+            counterpart in another locale so Wiki.js offers the language switcher;
+            the link is symmetric (the other page shows this one too). The list is
+            the WHOLE set of counterparts. The counterpart must exist already.
 
     Returns:
         Created page info with ID, path, and title.
@@ -91,6 +97,7 @@ def wikijs_create_page(
         source_repo=sourceRepo,
         source_ref=sourceRef,
         summary=summary,
+        locale_relations=localeRelations,
     )
 
 
@@ -175,6 +182,7 @@ def wikijs_update_page(
     sourceRef: str = "",
     summary: str = "",
     confirmContentShrink: bool = False,
+    localeRelations: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     """Update an existing page in Wiki.js.
 
@@ -212,6 +220,9 @@ def wikijs_update_page(
             and also stored as the reason for change on the Wiki.js version.
         confirmContentShrink: Set True to confirm an intentional large content
             reduction and bypass the accidental-overwrite guard above.
+        localeRelations: Replace the page's translation set, e.g.
+            [{"locale": "en", "path": "mcp/wikijs-plugin"}] (the WHOLE set; an empty
+            list unlinks the page). Optional, a links-only update needs no content.
     """
     return pages.update_page(
         _get_client(),
@@ -227,6 +238,7 @@ def wikijs_update_page(
         source_ref=sourceRef,
         summary=summary,
         confirm_content_shrink=confirmContentShrink,
+        locale_relations=localeRelations,
     )
 
 

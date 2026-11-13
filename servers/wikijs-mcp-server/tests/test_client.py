@@ -464,3 +464,33 @@ class TestTags:
         route = f"GET /_api/sites/{SITE_ID}/tags"
         client, _ = make_client({route: [{"tag": "sylius", "usageCount": 324}]})
         assert client.list_tags() == [{"tag": "sylius", "usageCount": 324}]
+
+
+class TestLocaleRelations:
+    rel = [{"locale": "en", "path": "mcp/x"}]
+
+    def test_create_sends_locale_relations(self):
+        route = f"POST /_api/sites/{SITE_ID}/pages"
+        client, rec = make_client({route: {"ok": True, "page": {"id": PAGE_ID, "path": "x", "title": "X"}}})
+        client.create_page(path="x", title="X", content="c", description="d", locale="de-DE",
+                           editor="markdown", is_published=False, tags=[], locale_relations=self.rel)
+        assert body_of(rec.calls(route)[0])["localeRelations"] == self.rel
+
+    def test_create_omits_locale_relations_by_default(self):
+        route = f"POST /_api/sites/{SITE_ID}/pages"
+        client, rec = make_client({route: {"ok": True, "page": {"id": PAGE_ID, "path": "x", "title": "X"}}})
+        client.create_page(path="x", title="X", content="c", description="d", locale="en",
+                           editor="markdown", is_published=False, tags=[])
+        assert "localeRelations" not in body_of(rec.calls(route)[0])
+
+    def test_update_sends_locale_relations_and_they_count_as_a_change(self):
+        route = f"PATCH /_api/sites/{SITE_ID}/pages/{PAGE_ID}"
+        client, rec = make_client({route: {"ok": True, "page": {"id": PAGE_ID}}})
+        client.update_page(page_id=PAGE_ID, locale_relations=self.rel)
+        assert body_of(rec.calls(route)[0]) == {"localeRelations": self.rel}
+
+    def test_empty_list_is_sent_to_unlink(self):
+        route = f"PATCH /_api/sites/{SITE_ID}/pages/{PAGE_ID}"
+        client, rec = make_client({route: {"ok": True, "page": {"id": PAGE_ID}}})
+        client.update_page(page_id=PAGE_ID, locale_relations=[])
+        assert body_of(rec.calls(route)[0]) == {"localeRelations": []}

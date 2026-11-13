@@ -15,6 +15,7 @@ from .validation import (
     validate_description,
     validate_editor,
     validate_locale,
+    validate_locale_relations,
     validate_page_id,
     validate_path,
     validate_tags,
@@ -117,6 +118,7 @@ def create_page(
     source_repo: str = "",
     source_ref: str = "",
     summary: str = "",
+    locale_relations: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     path = validate_path(path)
     title = validate_title(title)
@@ -125,6 +127,8 @@ def create_page(
     locale = validate_locale(locale)
     editor = validate_editor(editor)
     tags = validate_tags(tags or [])
+    if locale_relations is not None:
+        locale_relations = validate_locale_relations(locale_relations)
 
     page = client.create_page(
         path=path,
@@ -136,6 +140,7 @@ def create_page(
         is_published=is_published,
         tags=tags,
         reason=_reason(summary),
+        locale_relations=locale_relations,
     )
 
     _log_history_safely(page_path=path, locale=locale, source_repo=source_repo, source_ref=source_ref, summary=summary)
@@ -170,7 +175,9 @@ def get_page(
         "content": page.get("content"),
         "contentType": page.get("contentType"),
         "isPublished": page.get("isPublished"),
+        "publishState": page.get("publishState"),
         "locale": page.get("locale"),
+        "localeRelations": page.get("localeRelations") or [],
         "createdAt": page.get("createdAt"),
         "updatedAt": page.get("updatedAt"),
     }
@@ -284,6 +291,7 @@ def update_page(
     source_ref: str = "",
     summary: str = "",
     confirm_content_shrink: bool = False,
+    locale_relations: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     locale = validate_locale(locale)
     if page_id is not None:
@@ -300,6 +308,8 @@ def update_page(
         description = validate_description(description)
     if tags is not None:
         tags = validate_tags(tags)
+    if locale_relations is not None:
+        locale_relations = validate_locale_relations(locale_relations)
 
     resolved_id = page_id
     current_page: dict[str, Any] | None = None
@@ -338,6 +348,7 @@ def update_page(
         is_published=is_published,
         tags=tags,
         reason=_reason(summary),
+        locale_relations=locale_relations,
     )
 
     _log_update_history_safely(
