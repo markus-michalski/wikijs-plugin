@@ -22,7 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nothing yet
 
 ### Fixed
-- Nothing yet
+- `wikijs_delete_page` failed with HTTP 400 ("Body cannot be empty") against Wiki.js 3:
+  the client sent `Content-Type: application/json` on a request without a body. Found
+  in the first live write test with a personal access token.
 
 ### Security
 - Nothing yet
