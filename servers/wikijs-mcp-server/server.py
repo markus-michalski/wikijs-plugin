@@ -72,7 +72,8 @@ def wikijs_create_page(
             the page content/description — see wikijs_get_page_history.
         sourceRef: Optional source commit/tag (e.g. `git rev-parse HEAD`).
             Same DB-only logging as sourceRepo.
-        summary: Optional one-line summary of what changed, DB-only.
+        summary: Optional one-line summary of what changed. Logged to the local
+            DB and also stored as the reason for change on the Wiki.js version.
 
     Returns:
         Created page info with ID, path, and title.
@@ -207,7 +208,8 @@ def wikijs_update_page(
             (never written into the page content/description) — see
             wikijs_get_page_history.
         sourceRef: Optional source commit/tag (e.g. `git rev-parse HEAD`), DB-only.
-        summary: Optional one-line summary of what changed, DB-only.
+        summary: Optional one-line summary of what changed. Logged to the local DB
+            and also stored as the reason for change on the Wiki.js version.
         confirmContentShrink: Set True to confirm an intentional large content
             reduction and bypass the accidental-overwrite guard above.
     """
@@ -238,10 +240,12 @@ def wikijs_delete_page(
     path: str | None = None,
     locale: str = "en",
 ) -> dict[str, Any]:
-    """Delete a page from Wiki.js. WARNING: This action is IRREVERSIBLE!
+    """Delete a page from Wiki.js. It moves to the recycle bin and can be restored.
 
-    Permanently removes a page and all its history. Identify the page by
-    ID or path+locale.
+    The page disappears from the wiki but is kept in the recycle bin: list it
+    with wikijs_list_deleted_pages and bring it back with wikijs_restore_page.
+    Still confirm with the user first, the page is offline until restored.
+    Identify the page by ID or path+locale.
 
     Args:
         id: Page ID, a UUID (use this OR path)
@@ -262,6 +266,7 @@ def wikijs_move_page(
     path: str | None = None,
     locale: str = "en",
     destinationLocale: str = "en",
+    updateLinks: bool = False,
 ) -> dict[str, Any]:
     """Move a page to a new path in Wiki.js.
 
@@ -280,6 +285,8 @@ def wikijs_move_page(
         path: Current page path (use this OR id)
         locale: Current page locale, default "en"
         destinationLocale: Target locale, default "en"
+        updateLinks: Also rewrite internal links that pointed to the old path
+            in other pages, default False
     """
     return pages.move_page(
         _get_client(),
@@ -288,7 +295,120 @@ def wikijs_move_page(
         locale=locale,
         destination_path=destinationPath,
         destination_locale=destinationLocale,
+        update_links=updateLinks,
     )
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=True
+    )
+)
+def wikijs_list_page_versions(
+    id: str | None = None,
+    path: str | None = None,
+    locale: str = "en",
+    limit: int = 20,
+) -> dict[str, Any]:
+    """List a page's version history from Wiki.js, newest first.
+
+    This is Wiki.js's own history of every save (who, when, which fields,
+    the reason), not the local source-tracking DB of wikijs_get_page_history.
+    Use it to find the version to go back to after a bad update.
+
+    Args:
+        id: Page ID, a UUID (use this OR path)
+        path: Page path (use this OR id)
+        locale: Page locale, default "en" (required with path)
+        limit: Max versions to return, default 20, max 200
+    """
+    return pages.list_page_versions(_get_client(), page_id=id, path=path, locale=locale, limit=limit)
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=True
+    )
+)
+def wikijs_get_page_version(
+    versionId: str,
+    id: str | None = None,
+    path: str | None = None,
+    locale: str = "en",
+) -> dict[str, Any]:
+    """Get one past version of a page, including its content.
+
+    To roll a page back, read the wanted version here and send its `content`
+    to wikijs_update_page (with confirmContentShrink=True if the old version
+    is much shorter).
+
+    Args:
+        versionId: Version ID from wikijs_list_page_versions
+        id: Page ID, a UUID (use this OR path)
+        path: Page path (use this OR id)
+        locale: Page locale, default "en" (required with path)
+    """
+    return pages.get_page_version(_get_client(), version_id=versionId, page_id=id, path=path, locale=locale)
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=True
+    )
+)
+def wikijs_list_deleted_pages(locale: str = "en") -> dict[str, Any]:
+    """List the pages in the Wiki.js recycle bin for one locale.
+
+    Each entry has the pageId and versionId that wikijs_restore_page needs.
+
+    Args:
+        locale: Locale to list, default "en" (German is "de-DE")
+    """
+    return pages.list_deleted_pages(_get_client(), locale=locale)
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        read_only_hint=False, destructive_hint=False, idempotent_hint=False, open_world_hint=True
+    )
+)
+def wikijs_restore_page(
+    pageId: str,
+    versionId: str,
+    path: str | None = None,
+    locale: str | None = None,
+    title: str | None = None,
+) -> dict[str, Any]:
+    """Restore a deleted page from the recycle bin.
+
+    Take pageId and versionId from wikijs_list_deleted_pages. By default the
+    page returns to its old path; pass path/locale/title to restore it elsewhere
+    (needed when the old path is taken again).
+
+    Args:
+        pageId: ID of the deleted page
+        versionId: Version ID from the recycle bin entry
+        path: Restore under this path instead (optional)
+        locale: Restore into this locale instead (optional)
+        title: Restore with this title instead (optional)
+    """
+    return pages.restore_page(
+        _get_client(), page_id=pageId, version_id=versionId, path=path, locale=locale, title=title
+    )
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
+        read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=True
+    )
+)
+def wikijs_list_tags() -> dict[str, Any]:
+    """List the tags already in use on the wiki, most used first.
+
+    Check this before tagging a page and reuse an existing tag instead of
+    creating a variant (e.g. "sylius" vs. "Sylius").
+    """
+    return pages.list_tags(_get_client())
 
 
 @mcp.tool(

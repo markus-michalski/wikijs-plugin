@@ -42,7 +42,12 @@ Python (`mcp[cli]` + `httpx`), dedicated venv — same pattern as `mm-dev-toolki
 | `wikijs_list_pages` | List pages with pagination and filtering (page IDs are UUIDs) |
 | `wikijs_search_pages` | Full-text search across wiki pages |
 | `wikijs_delete_page` | Permanently delete pages |
-| `wikijs_move_page` | Move pages to new paths |
+| `wikijs_move_page` | Move pages to new paths (optionally rewriting internal links) |
+| `wikijs_list_page_versions` | Wiki.js's own version history of a page (who, when, reason) |
+| `wikijs_get_page_version` | One past version with its content, e.g. to roll a page back |
+| `wikijs_list_deleted_pages` | Pages in the recycle bin |
+| `wikijs_restore_page` | Bring a deleted page back from the recycle bin |
+| `wikijs_list_tags` | Tags in use on the wiki, most used first |
 | `wikijs_get_page_history` | Read a page's logged change history (Phase 2, see below) |
 | `wikijs_mark_verified` | Record that a page was checked against the source code at a commit (local DB only) |
 | `wikijs_get_verified_refs` | Read the newest verified source ref per page and locale (local DB only) |

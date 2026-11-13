@@ -10,10 +10,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing yet
+- `wikijs_list_page_versions` and `wikijs_get_page_version`: Wiki.js's own version history
+  of a page. A bad `content` update can be rolled back by sending an old version's content
+  to `wikijs_update_page`.
+- `wikijs_list_deleted_pages` and `wikijs_restore_page`: list the recycle bin and bring a
+  page back (optionally under a new path).
+- `wikijs_list_tags`: tags already in use, so docs reuse them instead of creating variants.
+- `wikijs_move_page` takes `updateLinks` to rewrite internal links that pointed at the old path.
 
 ### Changed
-- Nothing yet
+- `summary` of `wikijs_create_page` / `wikijs_update_page` is now also stored as the reason
+  for change on the Wiki.js version (255 characters at most), not only in the local DB.
+- `wikijs_delete_page` documents what actually happens: the page goes to the recycle bin and
+  is restorable. The "irreversible" warning is gone from the tool text and the delete message.
 
 ### Deprecated
 - Nothing yet

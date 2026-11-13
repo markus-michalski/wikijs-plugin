@@ -14,6 +14,11 @@ EXPECTED_TOOLS = {
     "wikijs_get_page_history",
     "wikijs_mark_verified",
     "wikijs_get_verified_refs",
+    "wikijs_list_page_versions",
+    "wikijs_get_page_version",
+    "wikijs_list_deleted_pages",
+    "wikijs_restore_page",
+    "wikijs_list_tags",
 }
 
 

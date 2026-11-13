@@ -609,6 +609,8 @@ Vor dem Erstellen/Updaten ALLE Punkte pruefen:
 
 ### Tags-Konvention
 
+Vorhandene Tags vor dem Vergeben mit `wikijs_list_tags` pruefen und wiederverwenden (gleiche Schreibweise), statt Varianten wie `Sylius` neben `sylius` anzulegen.
+
 | Projekttyp | Pflicht-Tags | Zusatz-Tags (themenabhaengig) |
 |------------|-------------|-------------------------------|
 | osTicket | `osticket`, `plugin` | `api`, `markdown`, `subticket`, etc. |
