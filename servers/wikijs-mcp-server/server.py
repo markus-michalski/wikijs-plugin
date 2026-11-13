@@ -439,13 +439,21 @@ def wikijs_render_page(
         read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=True
     )
 )
-def wikijs_list_tags() -> dict[str, Any]:
+def wikijs_list_tags(limit: int = 50, query: str | None = None) -> dict[str, Any]:
     """List the tags already in use on the wiki, most used first.
 
     Check this before tagging a page and reuse an existing tag instead of
-    creating a variant (e.g. "sylius" vs. "Sylius").
+    creating a variant (e.g. "sylius" vs. "Sylius"). A wiki can have hundreds of
+    tags, so pass `query` to look for a specific one.
+
+    Args:
+        limit: Max tags to return, default 50, max 500
+        query: Only tags containing this text, case-insensitive (optional)
+
+    Returns:
+        {"tags": [{"tag", "usageCount"}, ...], "total": number of matching tags}
     """
-    return pages.list_tags(_get_client())
+    return pages.list_tags(_get_client(), limit=limit, query=query)
 
 
 @mcp.tool(

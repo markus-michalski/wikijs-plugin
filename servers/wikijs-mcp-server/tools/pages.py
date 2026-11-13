@@ -46,6 +46,24 @@ def _resolve_page_id(
     return page["id"]
 
 
+_BRIEF_FIELDS = ("id", "path", "title", "locale", "publishState", "updatedAt")
+
+
+def _page_brief(page: dict[str, Any]) -> dict[str, Any]:
+    """The few fields worth echoing back. Wiki.js answers a write with the whole page
+    (render, toc, settings), which would only burn the caller's context."""
+    return {k: page[k] for k in _BRIEF_FIELDS if k in page}
+
+
+def _brief_result(result: dict[str, Any]) -> dict[str, Any]:
+    brief: dict[str, Any] = {"ok": result.get("ok", True)}
+    if result.get("message"):
+        brief["message"] = result["message"]
+    if isinstance(result.get("page"), dict):
+        brief["page"] = _page_brief(result["page"])
+    return brief
+
+
 def _queue_render(client: WikiJsClient, page_id: str) -> dict[str, Any]:
     """Queue a render after a content write; never fail the (already committed) write.
 
@@ -376,7 +394,7 @@ def update_page(
     )
 
     rendered = _queue_render(client, resolved_id) if content is not None else {}
-    return {"message": f"Page {resolved_id} updated successfully", "result": result, **rendered}
+    return {"message": f"Page {resolved_id} updated successfully", "result": _brief_result(result), **rendered}
 
 
 def get_page_history(*, path: str, locale: str | None = None, limit: int = 20) -> dict[str, Any]:
@@ -513,7 +531,7 @@ def move_page(
         "from": source_path or f"ID: {page_id}",
         "to": destination_path,
         "destinationLocale": destination_locale,
-        "result": result,
+        "result": _brief_result(result),
     }
 
 
@@ -618,14 +636,29 @@ def restore_page(
     if title is not None:
         title = validate_title(title)
     result = client.restore_page(page_id, version_id, path=path, locale=locale, title=title)
-    page = result.get("page") or {}
-    return {"message": f"Page {page_id} restored from the recycle bin", "page": page}
+    page = _page_brief(result.get("page") or {})
+    # A restored page comes back with an empty render (blank to readers and invisible to search).
+    return {
+        "message": f"Page {page_id} restored from the recycle bin",
+        "page": page,
+        **_queue_render(client, page_id),
+    }
 
 
-def list_tags(client: WikiJsClient) -> dict[str, Any]:
-    """Tags in use on the site, most used first — reuse these instead of inventing variants."""
+def list_tags(client: WikiJsClient, *, limit: int = 50, query: str | None = None) -> dict[str, Any]:
+    """Tags in use on the site, most used first — reuse these instead of inventing variants.
+
+    A wiki can carry hundreds of tags, so the list is capped (`limit`) and can be narrowed
+    with a case-insensitive substring (`query`). `total` counts all matches.
+    """
+    if not (1 <= limit <= 500):
+        raise ValueError("limit must be between 1 and 500")
     tags = client.list_tags()
-    return {"tags": sorted(tags, key=lambda t: t.get("usageCount", 0), reverse=True)}
+    if query:
+        needle = query.lower()
+        tags = [t for t in tags if needle in str(t.get("tag", "")).lower()]
+    ordered = sorted(tags, key=lambda t: t.get("usageCount", 0), reverse=True)
+    return {"tags": ordered[:limit], "total": len(ordered)}
 
 
 def render_page(
