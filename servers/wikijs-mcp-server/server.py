@@ -411,6 +411,31 @@ def wikijs_restore_page(
 
 @mcp.tool(
     annotations=ToolAnnotations(
+        read_only_hint=False, destructive_hint=False, idempotent_hint=True, open_world_hint=True
+    )
+)
+def wikijs_render_page(
+    id: str | None = None,
+    path: str | None = None,
+    locale: str = "en",
+) -> dict[str, Any]:
+    """Queue a page to be rendered again from its source.
+
+    Wiki.js shows the stored render, not the source. wikijs_create_page and
+    wikijs_update_page (with content) queue it automatically; use this when their
+    result says renderQueued is false, or after a bulk change. Takes a few
+    seconds, needs the Puppeteer extension on the wiki.
+
+    Args:
+        id: Page ID, a UUID (use this OR path)
+        path: Page path (use this OR id)
+        locale: Page locale, default "en" (required with path)
+    """
+    return pages.render_page(_get_client(), page_id=id, path=path, locale=locale)
+
+
+@mcp.tool(
+    annotations=ToolAnnotations(
         read_only_hint=True, destructive_hint=False, idempotent_hint=True, open_world_hint=True
     )
 )

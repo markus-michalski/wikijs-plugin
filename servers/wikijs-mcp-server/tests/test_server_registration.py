@@ -19,6 +19,7 @@ EXPECTED_TOOLS = {
     "wikijs_list_deleted_pages",
     "wikijs_restore_page",
     "wikijs_list_tags",
+    "wikijs_render_page",
 }
 
 

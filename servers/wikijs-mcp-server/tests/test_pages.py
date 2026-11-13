@@ -616,3 +616,48 @@ class TestLocaleRelationsTools:
         result = pages.get_page(client, page_id=PID)
         assert result["localeRelations"] == [{"locale": "de-DE", "path": "p", "title": "T"}]
         assert result["publishState"] == "draft"
+
+
+class TestRenderAfterWrite:
+    """Wiki.js shows the stored render, not the source. A REST write does not refresh it:
+    without a queued render readers (and search) keep the old page. Found live."""
+
+    def test_update_with_content_queues_a_render(self):
+        client = make_client()
+        result = pages.update_page(client, page_id=PID, content="# New")
+        client.render_page.assert_called_once_with(PID)
+        assert result["renderQueued"] is True
+
+    def test_update_without_content_does_not_render(self):
+        client = make_client()
+        result = pages.update_page(client, page_id=PID, title="T")
+        client.render_page.assert_not_called()
+        assert "renderQueued" not in result
+
+    def test_update_by_path_renders_the_resolved_id(self):
+        client = make_client()
+        pages.update_page(client, path="test/page", locale="en", content="# New")
+        client.render_page.assert_called_once_with(PID)
+
+    def test_create_queues_a_render(self):
+        client = make_client()
+        client.create_page.return_value = {"id": NEW_PID, "path": "p", "title": "T"}
+        result = pages.create_page(client, path="p", title="T", content="c", description="d")
+        client.render_page.assert_called_once_with(NEW_PID)
+        assert result["renderQueued"] is True
+
+    def test_render_failure_does_not_fail_the_write(self):
+        from tools.client import WikiJsError
+        client = make_client()
+        client.render_page.side_effect = WikiJsError("Wiki.js API error (HTTP 429): slow down")
+        result = pages.update_page(client, page_id=PID, content="# New")
+        assert result["renderQueued"] is False
+        assert "429" in result["renderWarning"]
+        assert "wikijs_render_page" in result["renderWarning"]
+
+    def test_render_page_tool_by_path(self):
+        client = make_client()
+        client.render_page.return_value = {"ok": True, "message": "Page queued for rendering."}
+        result = pages.render_page(client, path="test/page", locale="en")
+        client.render_page.assert_called_once_with(PID)
+        assert result["pageId"] == PID

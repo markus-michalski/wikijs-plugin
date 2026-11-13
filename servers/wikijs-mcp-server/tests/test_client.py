@@ -494,3 +494,19 @@ class TestLocaleRelations:
         client, rec = make_client({route: {"ok": True, "page": {"id": PAGE_ID}}})
         client.update_page(page_id=PAGE_ID, locale_relations=[])
         assert body_of(rec.calls(route)[0]) == {"localeRelations": []}
+
+
+class TestRenderPage:
+    route = f"POST /_api/sites/{SITE_ID}/pages/{PAGE_ID}/render"
+
+    def test_queues_a_render_without_body(self):
+        queued = httpx.Response(202, json={"ok": True, "message": "Page queued for rendering."})
+        client, rec = make_client({self.route: queued})
+        result = client.render_page(PAGE_ID)
+        assert result["ok"] is True
+        assert "content-type" not in rec.calls(self.route)[0].headers
+
+    def test_failure_raises(self):
+        client, _ = make_client({self.route: httpx.Response(503, json={"message": "Puppeteer extension missing"})})
+        with pytest.raises(WikiJsError, match="Puppeteer"):
+            client.render_page(PAGE_ID)
