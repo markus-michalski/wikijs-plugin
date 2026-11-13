@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `localeRelations` on `wikijs_create_page` and `wikijs_update_page` links a page to its
+  translation (e.g. DE and EN) so Wiki.js offers the language switcher. The link works in
+  both directions; the list is the whole set, an empty list unlinks. `wikijs_get_page` now
+  returns `localeRelations` and `publishState`. `docs-wiki` links the EN page to the DE page.
 - `wikijs_list_page_versions` and `wikijs_get_page_version`: Wiki.js's own version history
   of a page. A bad `content` update can be rolled back by sending an old version's content
   to `wikijs_update_page`.

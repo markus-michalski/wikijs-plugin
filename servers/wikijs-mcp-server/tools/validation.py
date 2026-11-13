@@ -84,6 +84,25 @@ def validate_version_id(version_id: str) -> str:
     return version_id
 
 
+MAX_LOCALE_RELATIONS = 10
+
+
+def validate_locale_relations(relations: list[dict[str, str]]) -> list[dict[str, str]]:
+    """Validate a page's translation set: [{"locale": "en", "path": "mcp/x"}, ...].
+
+    The list states the WHOLE set of counterparts in other locales, so an empty
+    list is valid (it unlinks the page).
+    """
+    if not isinstance(relations, list) or len(relations) > MAX_LOCALE_RELATIONS:
+        raise ValueError(f"localeRelations must be a list of at most {MAX_LOCALE_RELATIONS} entries")
+    checked: list[dict[str, str]] = []
+    for entry in relations:
+        if not isinstance(entry, dict) or set(entry) != {"locale", "path"}:
+            raise ValueError('Each localeRelations entry must be {"locale": ..., "path": ...}')
+        checked.append({"locale": validate_locale(entry["locale"]), "path": validate_path(entry["path"])})
+    return checked
+
+
 def validate_editor(editor: str) -> str:
     """Validate an editor id (e.g. "markdown"). Which ones exist is up to the wiki."""
     if not isinstance(editor, str) or not _EDITOR_RE.match(editor):

@@ -218,6 +218,7 @@ class WikiJsClient:
         is_published: bool,
         tags: list[str],
         reason: str | None = None,
+        locale_relations: list[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         body: dict[str, Any] = {
             "path": path,
@@ -231,6 +232,8 @@ class WikiJsClient:
         }
         if reason:
             body["reasonForChange"] = reason
+        if locale_relations is not None:
+            body["localeRelations"] = locale_relations
         data = self._request("POST", self._pages_path(), json=body)
         return data["page"]
 
@@ -244,6 +247,7 @@ class WikiJsClient:
         is_published: bool | None = None,
         tags: list[str] | None = None,
         reason: str | None = None,
+        locale_relations: list[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         """Partial update (PATCH): only the fields passed are sent and changed.
 
@@ -261,6 +265,8 @@ class WikiJsClient:
             body["publishState"] = self._publish_state(is_published)
         if tags is not None:
             body["tags"] = tags
+        if locale_relations is not None:
+            body["localeRelations"] = locale_relations
         if not body:
             raise WikiJsError("Nothing to update: pass at least one field to change.")
         if reason:

@@ -14,6 +14,12 @@ Jede Wiki.js-Seite wird in **DE und EN** erstellt/aktualisiert.
 - Code-Beispiele, CLI-Befehle, technische Terme bleiben in beiden Versionen gleich (welche
   Begriffe Lehnwörter bleiben, steht im Glossar von `translation-check`)
 - Nur Fliesstext, Ueberschriften, Beschreibungen uebersetzen
+- DE- und EN-Seite werden in Wiki.js 3 miteinander **verknuepft** (`localeRelations`), damit der
+  Sprachumschalter die jeweils andere Sprache anbietet. Die EN-Seite wird nach der DE-Seite
+  angelegt und bekommt `localeRelations: [{locale: "de-DE", path}]` (die Verknuepfung gilt in
+  beide Richtungen, die Gegenseite muss schon existieren). Bei einem Update einer unverknuepften
+  Bestandsseite per `wikijs_update_page(..., localeRelations: [...])` nachziehen. Die manuellen
+  Sprachlinks oben auf der Seite bleiben vorerst zusaetzlich bestehen
 
 ## Wiki.js Enhanced Markdown - PFLICHT
 
@@ -506,7 +512,8 @@ Translation-Check (Schritt 6) laufen dagegen einmal ueber den gesamten Seiten-Sa
 7. wikijs_create_page(path, locale: "de-DE", isPublished: false,
                        sourceRepo, sourceRef, summary, ...)          → je Unterseite DE, dann Hub DE (Draft)
 8. wikijs_create_page(path, locale: "en", isPublished: false,
-                       sourceRepo, sourceRef, summary, ...)          → je Unterseite EN, dann Hub EN (Draft)
+                       localeRelations: [{locale: "de-DE", path}],
+                       sourceRepo, sourceRef, summary, ...)          → je Unterseite EN, dann Hub EN (Draft), mit der DE-Seite verknuepft
    Ende des Laufs ohne Freigabe: Draft-Pfade und offene Marker-IDs nennen, dann stoppen
 9. Freigabe-Gate: Screenshot-URLs vom User → Marker ersetzen          → wikijs_get_page + wikijs_update_page(..., isPublished: false), Pruefung laut Gate
    ODER ausdrueckliche Freigabe des Users                             → ohne Pruefung, offene IDs vorher nennen
