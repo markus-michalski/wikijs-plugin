@@ -21,7 +21,7 @@ use its tools instead of asking the user to open the Wiki.js admin UI.
 
 - **Read** -> `wikijs_get_page`, `wikijs_list_pages`, `wikijs_search_pages`, `wikijs_list_tags`
 - **History/undo** -> `wikijs_list_page_versions` + `wikijs_get_page_version` (roll back by sending the old content to `wikijs_update_page`), `wikijs_list_deleted_pages` + `wikijs_restore_page`
-- **Write** -> `wikijs_create_page`, `wikijs_update_page`, `wikijs_move_page`
+- **Write** -> `wikijs_create_page`, `wikijs_update_page`, `wikijs_move_page`. Create/update queue a render so readers see the change; if the result says `renderQueued: false`, run `wikijs_render_page`
 - **Destructive** -> `wikijs_delete_page` (moves the page to the recycle bin, restorable with `wikijs_restore_page` — still confirm with the user first, the page is offline until restored)
 
 ## Skill Routing

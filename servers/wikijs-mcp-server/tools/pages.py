@@ -5,7 +5,7 @@ import sys
 from typing import Any
 
 from . import history
-from .client import WikiJsClient
+from .client import WikiJsClient, WikiJsError
 from .validation import (
     CONTENT_SHRINK_GUARD_MIN_OLD_LEN,
     CONTENT_SHRINK_GUARD_RATIO,
@@ -44,6 +44,24 @@ def _resolve_page_id(
     if not page:
         raise ValueError(f"Page not found at path: {path}")
     return page["id"]
+
+
+def _queue_render(client: WikiJsClient, page_id: str) -> dict[str, Any]:
+    """Queue a render after a content write; never fail the (already committed) write.
+
+    Wiki.js shows the stored render, which a REST write leaves stale (an updated
+    page keeps its old look, a new one is blank and invisible to search) until a
+    render is queued. A failure (no Puppeteer extension, rate limit) is reported
+    as a warning so the caller can retry with wikijs_render_page.
+    """
+    try:
+        client.render_page(page_id)
+    except WikiJsError as exc:
+        return {
+            "renderQueued": False,
+            "renderWarning": f"{exc}. The page shows its old render until you run wikijs_render_page.",
+        }
+    return {"renderQueued": True}
 
 
 def _log_history_safely(
@@ -148,6 +166,7 @@ def create_page(
     return {
         "message": f"Page created successfully at /{path}",
         "page": {"id": page["id"], "path": page["path"], "title": page["title"]},
+        **_queue_render(client, page["id"]),
     }
 
 
@@ -356,7 +375,8 @@ def update_page(
         source_repo=source_repo, source_ref=source_ref, summary=summary,
     )
 
-    return {"message": f"Page {resolved_id} updated successfully", "result": result}
+    rendered = _queue_render(client, resolved_id) if content is not None else {}
+    return {"message": f"Page {resolved_id} updated successfully", "result": result, **rendered}
 
 
 def get_page_history(*, path: str, locale: str | None = None, limit: int = 20) -> dict[str, Any]:
@@ -606,3 +626,16 @@ def list_tags(client: WikiJsClient) -> dict[str, Any]:
     """Tags in use on the site, most used first — reuse these instead of inventing variants."""
     tags = client.list_tags()
     return {"tags": sorted(tags, key=lambda t: t.get("usageCount", 0), reverse=True)}
+
+
+def render_page(
+    client: WikiJsClient,
+    *,
+    page_id: str | None = None,
+    path: str | None = None,
+    locale: str = "en",
+) -> dict[str, Any]:
+    """Queue a page to be rendered again from its source (see _queue_render)."""
+    resolved_id = _resolve_page_id(client, page_id, path, locale)
+    result = client.render_page(resolved_id)
+    return {"message": result.get("message") or "Page queued for rendering.", "pageId": resolved_id}
