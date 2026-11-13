@@ -10,58 +10,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `wikijs_render_page` queues a page to be rendered again from its source, for a write that reported
-  `renderQueued: false` or after a bulk change.
-- `localeRelations` on `wikijs_create_page` and `wikijs_update_page` links a page to its
-  translation (e.g. DE and EN) so Wiki.js offers the language switcher. The link works in
-  both directions; the list is the whole set, an empty list unlinks. `wikijs_get_page` now
-  returns `localeRelations` and `publishState`. `docs-wiki` links the EN page to the DE page.
-- `wikijs_list_page_versions` and `wikijs_get_page_version`: Wiki.js's own version history
-  of a page. A bad `content` update can be rolled back by sending an old version's content
-  to `wikijs_update_page`.
-- `wikijs_list_deleted_pages` and `wikijs_restore_page`: list the recycle bin and bring a
-  page back (optionally under a new path).
-- `wikijs_list_tags`: tags already in use, so docs reuse them instead of creating variants.
-- `wikijs_move_page` takes `updateLinks` to rewrite internal links that pointed at the old path.
+- Nothing yet
 
 ### Changed
-- `summary` of `wikijs_create_page` / `wikijs_update_page` is now also stored as the reason
-  for change on the Wiki.js version (255 characters at most), not only in the local DB.
-- `wikijs_delete_page` documents what actually happens: the page goes to the recycle bin and
-  is restorable. The "irreversible" warning is gone from the tool text and the delete message.
-- `docs-wiki`: badges are written on one line, separated by spaces (separate source lines
-  render as separate lines because of the hard `<br>`).
+- Nothing yet
 
 ### Deprecated
 - Nothing yet
 
 ### Removed
-- `docs-wiki` no longer writes a manual language link (`[English Version](...)` /
-  `[Deutsche Version](...)`) into the page. The theme's global language switcher does that job,
-  which only needs both languages to share the same path. The lines were removed from the
-  existing pages as well.
-- `docs-wiki` no longer writes a manual link to the parent page (`[Back to overview]`,
-  `[All OXID 7 Plugins]`, ...). The theme's breadcrumbs, built from the page path, show that
-  way back; the rule now requires a complete path hierarchy (category page and hub exist). The
-  lines were removed from the existing pages as well, as was the old `[English version]` link on
-  the German `mcp/wikijs` pages.
+- Nothing yet
 
 ### Fixed
-- `docs-wiki` rules said Wiki.js 3 no longer renders source line breaks as hard `<br>`. It still
-  does (checked with a freshly rendered page), so the 2.0.0 removal of the single-line callout
-  rule was wrong and the rule is back.
-- Content written through the REST API did not reach readers: Wiki.js serves the stored render,
-  and a REST write leaves it stale (an updated page kept its old look, a new one is blank and
-  invisible to search). `wikijs_create_page` and `wikijs_update_page` (with content) now queue a
-  render afterwards; a failure (no Puppeteer extension, rate limit) is returned as
-  `renderQueued: false` with a `renderWarning` instead of failing the write. Needs the Puppeteer
-  extension on the wiki.
-- `wikijs_delete_page` failed with HTTP 400 ("Body cannot be empty") against Wiki.js 3:
-  the client sent `Content-Type: application/json` on a request without a body. Found
-  in the first live write test with a personal access token.
+- Nothing yet
 
 ### Security
 - Nothing yet
+
+## [2.1.0] - 2026-11-13
+
+### Added
+- link translations with localeRelations (#33)
+- versions, recycle bin, tags, change reason and link rewriting (#32)
+
+### Changed
+- theme replaces language and parent links, restore br rule, badges on one line (#35)
+
+### Fixed
+- queue a render after content writes (#34)
+- send no JSON content type on bodyless requests (#31)
 
 ## [2.0.0] - 2026-11-13
 
@@ -144,7 +121,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [1.0.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.0.0
 [1.1.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.1.0
-[Unreleased]: https://github.com/markus-michalski/wikijs-plugin/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/markus-michalski/wikijs-plugin/compare/v2.1.0...HEAD
 [1.2.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.0
 [1.2.1]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.1
 [1.2.2]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.2.2
@@ -154,3 +131,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [1.5.1]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.5.1
 [1.5.2]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v1.5.2
 [2.0.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v2.0.0
+[2.1.0]: https://github.com/markus-michalski/wikijs-plugin/releases/tag/v2.1.0
